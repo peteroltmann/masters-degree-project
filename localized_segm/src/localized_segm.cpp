@@ -1,21 +1,35 @@
-#include "opencv2/highgui/highgui.hpp"
+#include "RegBasedContours.h"
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
+#include <boost/format.hpp>
+
+#define WINDOW "Image"
 
 using namespace cv;
-using namespace std;
 
 int main(int argc, char** argv)
 {
-    Mat im(600, 800, CV_32F);
-    putText(im, "Hello, World!", Point(20,40), 0, 1, Scalar(255, 255, 255));
-    if (im.empty())
-    {
-        cerr << "Cannot open image!" << endl;
-        return -1;
-    }
+    namedWindow(WINDOW);
+    Mat seg;
+    Mat frame;
+    frame = imread("../src/airplane.jpg",
+                       CV_LOAD_IMAGE_GRAYSCALE);
+    Mat mask = Mat::zeros(frame.size(), frame.type());
+    Mat roi(mask, Rect(122, 110, 112, 112)); // from matlab demo
+    roi = Scalar::all(1);
 
-    imshow("image", im);
+    // make image smaller for fast computation
+//    cv::resize(frame, frame, cv::Size(frame.cols*0.5, frame.rows*0.5));
+//    cv::resize(mask, mask, cv::Size(mask.cols*0.5, mask.rows*0.5));
+
+    RegBasedContours segm;
+    segm.apply(frame, mask, seg, 600);
+
+    imshow(WINDOW, seg);
+    std::cout << "Done. Press key to quit." << std::endl;
     waitKey(0);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

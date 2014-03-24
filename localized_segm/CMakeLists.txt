@@ -5,6 +5,11 @@ cmake_minimum_required(VERSION 2.8)
 # -D"CMAKE_MAKE_PROGRAM:PATH=<absolute path>"
 # e.g.:
 # -D"CMAKE_MAKE_PROGRAM:PATH=C:/MinGW/bin/make.exe"
+#
+# Debug:
+# -D"CMAKE_BUILD_TYPE=Debug"
+# Release:
+# -D"CMAKE_BUILD_TYPE=Release"
 
 project(localized_segm)
 
@@ -30,3 +35,6 @@ if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -O3")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -DDEBUG -DSHOW_CONTOUR_EVOLUTION")
