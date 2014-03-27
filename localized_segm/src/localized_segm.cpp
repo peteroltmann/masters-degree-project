@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 //    cv::resize(mask, mask, cv::Size(mask.cols*0.5, mask.rows*0.5));
 
     RegBasedContours segm;
-    segm.apply(frame, mask, seg, 500);
+    segm.apply(frame, mask, seg, 600);
 
     imshow(WINDOW, seg);
     std::cout << "Done. Press key to quit." << std::endl;

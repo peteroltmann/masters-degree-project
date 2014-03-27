@@ -24,11 +24,10 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
     // main loop
     for (int its = 0; its < iterations; its++)
     {
-#ifdef DEBUG
-        clock_t clock1, clock2;
-        clock1 = clock();
+#ifdef TIME_MEASUREMENT
+        int64 t1, t2;
+        t1 = cv::getTickCount();
 #endif
-
         // find curves narrow band
         std::vector< std::vector<float> > narrow; // [y, x, value]
         for (int y = 0; y < phi.rows; y++)
@@ -70,26 +69,55 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
         meanInt /= sumInt;
         meanExt /= sumExt;
 
-        // F = (I(x)-u).^2-(I(x)-v).^2
         float maxF = 0.f;
+        float curvature = 0.f;
         for (int i = 0; i < narrow.size(); i++)
         {
             int y = (int) narrow[i][0], x = (int) narrow[i][1];
+
+            // calculate speed function F = (I(x)-u).^2-(I(x)-v).^2
             float Ix = frame.at<float>(y, x);
             float diffInt = Ix - meanInt;
             float diffExt = Ix - meanExt;
             float Fi = diffInt*diffInt - diffExt*diffExt;
             narrow[i][2] = Fi;
 
+            // get maxF for normalization
             if (std::fabs(Fi) > maxF)
                 maxF = std::fabs(Fi);
+
+            // calculate curvature
+            int xm1 = x == 0 ? 0 : x-1;
+            int xp1 = x == phi.cols-1 ? phi.cols-1 : x+1;
+            int ym1 = y == 0 ? 0 : y-1;
+            int yp1 = y == phi.rows-1 ? phi.rows-1 : y+1;
+
+            float phi_i = phi.at<float>(y, x);
+
+            float phixx = (phi.at<float>(y, xp1)  - phi_i)
+                        - (phi_i                  - phi.at<float>(ym1,x));
+            float phiyy = (phi.at<float>(y,xp1)   - phi_i)
+                        - (phi_i                  - phi.at<float>(y,xm1));
+            float phixy = (phi.at<float>(yp1,xp1) - phi.at<float>(ym1,xp1))
+                        - (phi.at<float>(yp1,xm1) - phi.at<float>(ym1,xm1));
+            phixy *= 1.f/4.f;
+            float phix = (phi.at<float>(yp1,x) - phi.at<float>(ym1,x));
+            phix *= 1.f/.2f;
+            float phiy = (phi.at<float>(y,xp1) - phi.at<float>(y, xm1));
+
+            curvature = (phixx*phiy*phiy
+                               - 2.f*phiy*phix*phixy
+                               + phiyy*phix*phix)
+                              / std::pow((phix*phix + phiy*phiy + FLT_EPSILON),
+                                         3.f/2.f);
+
         }
 
         // dphidt = F./max(abs(F)) + alpha*curvature;
-        // % gradient descent to minimize energy
-        // TODO: curvature
+        // extra loop to normalize speed function
+        float alpha = .2f;
         for (int i = 0; i < narrow.size(); i++)
-            narrow[i][2] /= maxF;
+            narrow[i][2] = narrow[i][2]/maxF + alpha*curvature;
 
         maxF = FLT_MIN;
         for (int i = 0; i < narrow.size(); i++)
@@ -99,10 +127,8 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
                 maxF = Fi;
         }
 
-        // % maintain the CFL condition
-        // dt = .45/(max(dphidt)+eps);
+        // maintain the CFL condition
         float dt = .45f / (maxF + FLT_EPSILON); // 0.9*0.5 = 0.45
-//        dt = .5f;
 
         // phi = phi + dt * dphidt
         for (int i = 0; i < narrow.size(); i++)
@@ -113,9 +139,9 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
 
         sussmanReinit(phi, .5f);
 
-#ifdef DEBUG
-        clock2 = clock();
-        std::cout << "Clock Diff: " << (clock2-clock1) << std::endl;
+#ifdef TIME_MEASUREMENT
+        t2 = cv::getTickCount();
+        std::cout << "Time [s]: " << (t2-t1)/cv::getTickFrequency() << std::endl;
 #endif
 #ifdef SHOW_CONTOUR_EVOLUTION
         // show contours
@@ -133,35 +159,6 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
     }
     seg = cv::Mat::zeros(image.rows, image.cols, image.type());
     seg.setTo(255, phi < 0);
-}
-
-void RegBasedContours::calcCurvature(cv::Mat phi, cv::Mat curvature,
-                                     cv::Mat mask)
-{
-    if (curvature.empty() || curvature.size() != phi.size() ||
-        curvature.type() != phi.type())
-    {
-        curvature.create(phi.size(), phi.type());
-    }
-
-    for (int i = 1; i < phi.rows-1; i++)
-    {
-        for (int j = 1; j < phi.cols-1; j++)
-        {
-            float phixx = (phi.at<float>(i+1,j) - phi.at<float>(i,j))
-                        - (phi.at<float>(i,j) - phi.at<float>(i-1,j));
-            float phiyy = (phi.at<float>(i,j+1) - phi.at<float>(i,j))
-                        - (phi.at<float>(i,j) - phi.at<float>(i,j-1));
-            float phixy = (phi.at<float>(i+1,j+1) - phi.at<float>(i-1,j+1))
-                        - (phi.at<float>(i+1,j-1) - phi.at<float>(i-1,j-1));
-            phixy *= 1.f/4.f;
-            float phix = (phi.at<float>(i+1,j) - phi.at<float>(i-1,j));
-            phix *= 1.f/.2f;
-            float phiy = (phi.at<float>(i,j+1) - phi.at<float>(i, j-1));
-
-            curvature.at<float>(i,j) = (phixx*phiy*phiy - 2.f*phiy*phix*phixy + phiyy*phix*phix) / std::pow((phix*phix + phiy*phiy + FLT_EPSILON), 3.f/2.f);
-        }
-    }
 }
 
 void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
@@ -223,7 +220,7 @@ void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
             DnPtr[x] = Dx - dt * Sptr[x] * Gptr[x];
         }
     }
-    Dn.copyTo(D);
+    D = Dn;
 }
 
 cv::Mat RegBasedContours::mask2phi(cv::Mat mask)

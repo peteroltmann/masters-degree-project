@@ -14,14 +14,10 @@ public:
 
     void apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int iterations,
                float alpha=.2f);
-    void calcCurvature(cv::Mat phi, cv::Mat curvature, cv::Mat mask=cv::Mat());
     void sussmanReinit(cv::Mat&D, float dt);
 
 private:
     cv::Mat mask2phi(cv::Mat mask);
-    int dirac(int i, int j, cv::Mat phi) {
-        return std::abs(phi.at<float>(i, j)) < 1.2 ? 1 : 0;
-    }
 };
 
 /*!
