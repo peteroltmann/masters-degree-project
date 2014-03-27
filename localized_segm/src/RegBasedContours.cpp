@@ -28,20 +28,99 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
         clock_t clock1, clock2;
         clock1 = clock();
 #endif
-        // "find curves narrow band"
-        cv::Mat idx1 = phi <= 1.2f;
-        cv::Mat idx2 = phi >= -1.2f;
-        cv::Mat idx = idx1 == idx2;
-        // TODO: no narrow band, just everything
-//        idx = cv::Mat::ones(phi.rows, phi.cols, CV_8U);
 
-        // reinitialize segmenation image
-        seg = cv::Mat::zeros(image.rows, image.cols, image.type());
-        seg.setTo(255, phi < 0);
+        // find curves narrow band
+        std::vector< std::vector<float> > narrow; // [y, x, value]
+        for (int y = 0; y < phi.rows; y++)
+        {
+            const float* phiPtr = phi.ptr<float>(y);
+            for (int x = 0; x < phi.cols; x++)
+            {
+                if (phiPtr[x] <= 1.2f && phiPtr[x] >= -1.2f)
+                {
+                    narrow.push_back(std::vector<float>(3));
+                    narrow.back()[0] = y;
+                    narrow.back()[1] = x;
+                    narrow.back()[2] = 0.f;
+                }
+            }
+        }
+
+        // find interior and exterior mean
+        float meanInt = 0.f, meanExt = 0.f;
+        float sumInt = FLT_EPSILON, sumExt = FLT_EPSILON;
+        for (int y = 0; y < phi.rows; y++)
+        {
+            const float* phiPtr = phi.ptr<float>(y);
+            const float* framePtr = frame.ptr<float>(y);
+            for (int x = 0; x < phi.cols; x++)
+            {
+                if (phiPtr[x] <= 0)
+                {
+                    meanInt += framePtr[x];
+                    sumInt++;
+                }
+                else
+                {
+                    meanExt += framePtr[x];
+                    sumExt++;
+                }
+            }
+        }
+        meanInt /= sumInt;
+        meanExt /= sumExt;
+
+        // F = (I(x)-u).^2-(I(x)-v).^2
+        float maxF = 0.f;
+        for (int i = 0; i < narrow.size(); i++)
+        {
+            int y = (int) narrow[i][0], x = (int) narrow[i][1];
+            float Ix = frame.at<float>(y, x);
+            float diffInt = Ix - meanInt;
+            float diffExt = Ix - meanExt;
+            float Fi = diffInt*diffInt - diffExt*diffExt;
+            narrow[i][2] = Fi;
+
+            if (std::fabs(Fi) > maxF)
+                maxF = std::fabs(Fi);
+        }
+
+        // dphidt = F./max(abs(F)) + alpha*curvature;
+        // % gradient descent to minimize energy
+        // TODO: curvature
+        for (int i = 0; i < narrow.size(); i++)
+            narrow[i][2] /= maxF;
+
+        maxF = FLT_MIN;
+        for (int i = 0; i < narrow.size(); i++)
+        {
+            float Fi = narrow[i][2];
+            if (Fi > maxF)
+                maxF = Fi;
+        }
+
+        // % maintain the CFL condition
+        // dt = .45/(max(dphidt)+eps);
+        float dt = .45f / (maxF + FLT_EPSILON); // 0.9*0.5 = 0.45
+//        dt = .5f;
+
+        // phi = phi + dt * dphidt
+        for (int i = 0; i < narrow.size(); i++)
+        {
+            int y = (int) narrow[i][0], x = (int) narrow[i][1];
+            phi.at<float>(y, x) += dt * narrow[i][2];
+        }
+
+        sussmanReinit(phi, .5f);
+
+#ifdef DEBUG
+        clock2 = clock();
+        std::cout << "Clock Diff: " << (clock2-clock1) << std::endl;
+#endif
 #ifdef SHOW_CONTOUR_EVOLUTION
         // show contours
-        cv::Mat inOut;
-        seg.copyTo(inOut);
+        cv::Mat inOut = cv::Mat::zeros(image.rows, image.cols, image.type());
+        inOut.setTo(255, phi < 0);
         std::vector< std::vector<cv::Point> > contours;
         cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
         cv::Mat out;
@@ -51,52 +130,9 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
         cv::waitKey(1);
 //        std::cout << "its: " << its << std::endl;
 #endif
-
-        // find interior and exterior mean
-        cv::Mat intPts = phi <= 0;
-        cv::Mat extPts = phi > 0;
-        float meanInt = cv::mean(frame, intPts)[0];
-        float meanExt = cv::mean(frame, extPts)[0];
-
-        // (I(x)-u).^2-(I(x)-v).^2
-        cv::Mat diffInt;
-        cv::Mat diffExt;
-        cv::Mat diffInt2;
-        cv::Mat diffExt2;
-        cv::Mat F;
-        cv::subtract(frame, meanInt, diffInt, idx);
-        cv::subtract(frame, meanExt, diffExt, idx);
-        cv::multiply(diffInt, diffInt, diffInt2);
-        cv::multiply(diffExt, diffExt, diffExt2);
-        cv::subtract(diffInt2, diffExt2, F, idx);
-
-        // dphidt = F./max(abs(F)) + alpha*curvature;
-        // % gradient descent to minimize energy
-        cv::Mat dphidt;
-        double maxF;
-        cv::minMaxIdx(cv::abs(F), NULL, &maxF, NULL, NULL, idx);
-        dphidt = F * (1.f/((float) maxF));
-//        cv::Mat curvature;
-//        calcCurvature(phi, curvature);
-//        curvature = curvature * 0.2f;
-//        dphidt = dphidt + curvature;
-
-        // % maintain the CFL condition
-        // dt = .45/(max(dphidt)+eps);
-        double maxdphidt;
-        cv::minMaxIdx(dphidt, NULL, &maxdphidt, NULL, NULL, idx);
-        float dt = .45f / ((float) maxdphidt + FLT_EPSILON); // 0.9*0.5 = 0.45
-//        dt = .5f;
-
-        cv::Mat dt_dphidt = dt * dphidt;
-        cv::add(phi, dt_dphidt, phi, idx);
-
-        sussmanReinit(phi, .5f);
-#ifdef DEBUG
-        clock2 = clock();
-        std::cout << "Clock Diff: " << (clock2-clock1) << std::endl;
-#endif
     }
+    seg = cv::Mat::zeros(image.rows, image.cols, image.type());
+    seg.setTo(255, phi < 0);
 }
 
 void RegBasedContours::calcCurvature(cv::Mat phi, cv::Mat curvature,
@@ -130,77 +166,64 @@ void RegBasedContours::calcCurvature(cv::Mat phi, cv::Mat curvature,
 
 void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
 {
-    cv::Mat a; // D_x^-
-    cv::Mat b; // D_x^+
-    cv::Mat c; // D_y^-
-    cv::Mat d; // D_y^+
+    cv::Mat a(D.size(), D.type()); // D_x^-
+    cv::Mat b(D.size(), D.type()); // D_x^+
+    cv::Mat c(D.size(), D.type()); // D_y^-
+    cv::Mat d(D.size(), D.type()); // D_y^+
+    cv::Mat S(D.size(), D.type()); // S = D / (D.^2 + 1)
+    cv::Mat G(D.size(), D.type());
+    cv::Mat Dn(D.size(), D.type());
 
-    // calculate discretized derivates
-    cv::hconcat(D.col(0), D.colRange(0, D.cols-1), a); // shift right
-    cv::hconcat(D.colRange(1, D.cols), D.col(D.cols-1), b); // shift left
-    cv::vconcat(D.row(0), D.rowRange(0, D.rows-1), c); // shift down
-    cv::vconcat(D.rowRange(1, D.rows), D.row(D.rows-1), d); // shift up
-    a = D - a;
-    b = b - D;
-    c = D - c;
-    d = d - D;
+    // TOOD: what with the outer bound
+    for (int y = 0; y < D.rows; y++)
+    {
+        const float* Dptr = D.ptr<float>(y);
+        float* DnPtr = Dn.ptr<float>(y);
+        float* aPtr = a.ptr<float>(y);
+        float* bPtr = b.ptr<float>(y);
+        float* cPtr = c.ptr<float>(y);
+        float* dPtr = d.ptr<float>(y);
+        float* Sptr = S.ptr<float>(y);
+        float* Gptr = G.ptr<float>(y);
+        for (int x = 0; x < D.cols; x++)
+        {
+            float Dx = Dptr[x];
 
-    cv::Mat a_p = a.clone();
-    cv::Mat b_p = b.clone();
-    cv::Mat c_p = c.clone();
-    cv::Mat d_p = d.clone();
-    cv::Mat a_n = a.clone();
-    cv::Mat b_n = b.clone();
-    cv::Mat c_n = c.clone();
-    cv::Mat d_n = d.clone();
+            int xm1 = x == 0 ? 0 : x-1;
+            int xp1 = x == D.cols-1 ? D.cols-1 : x+1;
+            int ym1 = y == 0 ? 0 : y-1;
+            int yp1 = y == D.rows-1 ? D.rows-1 : y+1;
 
-    a_p.setTo(0, a < 0);
-    a_n.setTo(0, a > 0);
-    b_p.setTo(0, b < 0);
-    b_n.setTo(0, b > 0);
-    c_p.setTo(0, c < 0);
-    c_n.setTo(0, c > 0);
-    d_p.setTo(0, d < 0);
-    d_n.setTo(0, d > 0);
+            // calculate discretized derivates
+            aPtr[x] = (Dx - D.at<float>(y, xm1));
+            bPtr[x] = (D.at<float>(y, xp1) - Dx);
+            cPtr[x] = (Dx - D.at<float>(ym1, x));
+            dPtr[x] = (D.at<float>(yp1, x) - Dx);
 
-    // calc S = D_ij / sqrt(D_ij.^2 + 1)
-    cv::Mat S;
-    cv::pow(D, 2, S);
-    S = S + 1;
-    cv::sqrt(S, S);
-    cv::divide(D, S, S);
+            Sptr[x] = Dx / std::sqrt(Dx*Dx + 1);
 
-    // calc G
-    cv::Mat G = cv::Mat::zeros(D.size(), D.type());
-//    cv::Mat idx_pos = D > 0;
-//    cv::Mat idx_neg = D < 0;
+            // positive/negative values
+            float ap = aPtr[x] < 0 ? 0 : aPtr[x];
+            float an = aPtr[x] > 0 ? 0 : aPtr[x];
+            float bp = bPtr[x] < 0 ? 0 : bPtr[x];
+            float bn = bPtr[x] > 0 ? 0 : bPtr[x];
+            float cp = cPtr[x] < 0 ? 0 : cPtr[x];
+            float cn = cPtr[x] > 0 ? 0 : cPtr[x];
+            float dp = dPtr[x] < 0 ? 0 : dPtr[x];
+            float dn = dPtr[x] > 0 ? 0 : dPtr[x];
 
-    cv::pow(a_p, 2, a_p);
-    cv::pow(a_n, 2, a_n);
-    cv::pow(b_p, 2, b_p);
-    cv::pow(b_n, 2, b_n);
-    cv::pow(c_p, 2, c_p);
-    cv::pow(c_n, 2, c_n);
-    cv::pow(d_p, 2, d_p);
-    cv::pow(d_n, 2, d_n);
+            if (Dx > 0)
+                Gptr[x] = std::sqrt(std::max(ap*ap, bn*bn) + std::max(cp*cp, dn*dn)) - 1;
+            else if (Dx < 0)
+                Gptr[x] = std::sqrt(std::max(an*an, bp*bp) + std::max(cn*cn, dp*dp)) - 1;
+            else
+                Gptr[x] = 0.f;
 
-    cv::Mat max_ap_bn, max_cp_dn, max_an_bp, max_cn_dp;
-    cv::max(a_p, b_n, max_ap_bn);
-    cv::max(c_p, d_n, max_cp_dn);
-    cv::max(a_n, b_p, max_an_bp);
-    cv::max(c_n, d_p, max_cn_dp);
-
-    cv::Mat sqrt_p, sqrt_n;
-    cv::sqrt(max_ap_bn + max_cp_dn, sqrt_p);
-    cv::sqrt(max_an_bp + max_cn_dp, sqrt_n);
-
-    sqrt_p.copyTo(G, D > 0);
-    sqrt_n.copyTo(G, D < 0);
-
-    // calc new SDF
-    cv::multiply(S, G, S);
-    S = dt * S;
-    D = D - S;
+            // new SDF
+            DnPtr[x] = Dx - dt * Sptr[x] * Gptr[x];
+        }
+    }
+    Dn.copyTo(D);
 }
 
 cv::Mat RegBasedContours::mask2phi(cv::Mat mask)
