@@ -28,11 +28,14 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
         int64 t1, t2;
         t1 = cv::getTickCount();
 #endif
-        // find curves narrow band
+        // find the curve's narrow band, interior and exterior mean
         std::vector< std::vector<float> > narrow; // [y, x, value]
+        float meanInt = 0.f, meanExt = 0.f;
+        float sumInt = FLT_EPSILON, sumExt = FLT_EPSILON;
         for (int y = 0; y < phi.rows; y++)
         {
             const float* phiPtr = phi.ptr<float>(y);
+            const float* framePtr = frame.ptr<float>(y);
             for (int x = 0; x < phi.cols; x++)
             {
                 if (phiPtr[x] <= 1.2f && phiPtr[x] >= -1.2f)
@@ -42,18 +45,6 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
                     narrow.back()[1] = x;
                     narrow.back()[2] = 0.f;
                 }
-            }
-        }
-
-        // find interior and exterior mean
-        float meanInt = 0.f, meanExt = 0.f;
-        float sumInt = FLT_EPSILON, sumExt = FLT_EPSILON;
-        for (int y = 0; y < phi.rows; y++)
-        {
-            const float* phiPtr = phi.ptr<float>(y);
-            const float* framePtr = frame.ptr<float>(y);
-            for (int x = 0; x < phi.cols; x++)
-            {
                 if (phiPtr[x] <= 0)
                 {
                     meanInt += framePtr[x];
@@ -83,8 +74,9 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
             narrow[i][2] = Fi;
 
             // get maxF for normalization
-            if (std::fabs(Fi) > maxF)
-                maxF = std::fabs(Fi);
+            float absFi = std::fabs(Fi);
+            if (absFi > maxF)
+                maxF = absFi;
 
             // calculate curvature
             int xm1 = x == 0 ? 0 : x-1;
@@ -110,7 +102,6 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
                                + phiyy*phix*phix)
                               / std::pow((phix*phix + phiy*phiy + FLT_EPSILON),
                                          3.f/2.f);
-
         }
 
         // dphidt = F./max(abs(F)) + alpha*curvature;
