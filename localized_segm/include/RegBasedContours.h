@@ -6,6 +6,10 @@
 #include <iostream>
 #include <exception>
 
+#define WINDOW_NAME "Image"
+#define CHAN_VESE 0
+#define YEZZI 1
+
 class RegBasedContours
 {
 public:
@@ -13,7 +17,7 @@ public:
     virtual ~RegBasedContours();
 
     void apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int iterations,
-               float alpha=.2f);
+               int method=1, bool localized=false, int rad=18, float alpha=.2f);
     void sussmanReinit(cv::Mat&D, float dt);
 
 private:

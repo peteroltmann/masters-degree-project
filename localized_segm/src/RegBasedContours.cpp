@@ -9,17 +9,20 @@ RegBasedContours::RegBasedContours() {}
 
 RegBasedContours::~RegBasedContours() {}
 
-void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int iterations,
-                             float alpha)
+void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
+                             int iterations, int method, bool localized,
+                             int rad, float alpha)
 {
     cv::Mat image;
+#ifdef SHOW_CONTOUR_EVOLUTION
     frame.copyTo(image);
     frame.convertTo(frame, CV_32F);
+#endif
 
     // TODO assert frame.size() = initMask.size()
 
     // create a signed distance map (SDF) from mask
-    cv::Mat phi = mask2phi(initMask);
+    phi = mask2phi(initMask);
 
     // main loop
     for (int its = 0; its < iterations; its++)
@@ -45,20 +48,27 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
                     narrow.back()[1] = x;
                     narrow.back()[2] = 0.f;
                 }
-                if (phiPtr[x] <= 0)
+                if (!localized)
                 {
-                    meanInt += framePtr[x];
-                    sumInt++;
-                }
-                else
-                {
-                    meanExt += framePtr[x];
-                    sumExt++;
+                    if (phiPtr[x] <= 0)
+                    {
+                        meanInt += framePtr[x];
+                        sumInt++;
+                    }
+                    else
+                    {
+                        meanExt += framePtr[x];
+                        sumExt++;
+                    }
                 }
             }
         }
-        meanInt /= sumInt;
-        meanExt /= sumExt;
+
+        if (!localized)
+        {
+            meanInt /= sumInt;
+            meanExt /= sumExt;
+        }
 
         float maxF = 0.f;
         float curvature = 0.f;
@@ -66,11 +76,45 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
         {
             int y = (int) narrow[i][0], x = (int) narrow[i][1];
 
-            // calculate speed function F = (I(x)-u).^2-(I(x)-v).^2
+            if (localized) // find localized mean
+            {
+                int xneg = x - rad < 0 ? 0 : x - rad;
+                int xpos = x + rad > frame.cols-1 ? frame.cols-1 : x + rad;
+                int yneg = y - rad < 0 ? 0 : y - rad;
+                int ypos = y + rad > frame.rows-1 ? frame.rows-1 : y + rad;
+
+
+                cv::Mat subImg = frame(cv::Rect(xneg, yneg, xpos-xneg+1,
+                                                ypos-yneg+1));
+                cv::Mat subPhi = phi(cv::Rect(xneg, yneg, xpos-xneg+1,
+                                              ypos-yneg+1));
+                cv::Mat intPts = subPhi <= 0;
+                cv::Mat extPts = subPhi > 0;
+
+                meanInt = cv::mean(subImg, intPts)[0];
+                meanExt = cv::mean(subImg, extPts)[0];
+                sumInt = cv::countNonZero(intPts);
+                sumExt = subImg.rows*subImg.cols - sumInt;
+            }
+
+            // calculate speed function
             float Ix = frame.at<float>(y, x);
-            float diffInt = Ix - meanInt;
-            float diffExt = Ix - meanExt;
-            float Fi = diffInt*diffInt - diffExt*diffExt;
+            float Fi = 0.f;
+
+            // F = (I(x)-u).^2-(I(x)-v).^2
+            if (method == CHAN_VESE)
+            {
+                float diffInt = Ix - meanInt;
+                float diffExt = Ix - meanExt;
+                Fi = diffInt*diffInt - diffExt*diffExt;
+            }
+            // F = -((u-v).*((I(idx)-u)./Ain+(I(idx)-v)./Aout));
+            else if (method == YEZZI)
+            {
+                Fi = -((meanInt-meanExt) * ((Ix-meanInt) / sumInt
+                                            + (Ix-meanExt) / sumExt));
+            }
+
             narrow[i][2] = Fi;
 
             // get maxF for normalization
@@ -106,7 +150,6 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
 
         // dphidt = F./max(abs(F)) + alpha*curvature;
         // extra loop to normalize speed function
-        float alpha = .2f;
         for (int i = 0; i < narrow.size(); i++)
             narrow[i][2] = narrow[i][2]/maxF + alpha*curvature;
 
@@ -143,13 +186,11 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int 
         cv::Mat out;
         image.copyTo(out);
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
-        cv::imshow("Image", out);
+        cv::imshow(WINDOW_NAME, out);
         cv::waitKey(1);
 //        std::cout << "its: " << its << std::endl;
 #endif
     }
-    seg = cv::Mat::zeros(image.rows, image.cols, image.type());
-    seg.setTo(255, phi < 0);
 }
 
 void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
