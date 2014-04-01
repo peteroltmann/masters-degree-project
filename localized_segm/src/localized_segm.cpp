@@ -26,6 +26,8 @@ int main(int argc, char** argv)
     fs["rad"] >> rad;
     fs["alpha"] >> alpha;
 
+    // TODO: parameter error handling
+
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
     Mat frame;
     frame = imread(imagePath, CV_LOAD_IMAGE_GRAYSCALE);
@@ -40,9 +42,12 @@ int main(int argc, char** argv)
     Mat roi(mask, maskRect);
     roi = Scalar::all(1);
 
-    // make image smaller for fast computation
-    cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
-    cv::resize(mask, mask, cv::Size(mask.cols/2, mask.rows/2));
+    if (localized)
+    {
+        // make image smaller for fast computation
+        cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
+        cv::resize(mask, mask, cv::Size(mask.cols/2, mask.rows/2));
+    }
 
     RegBasedContours segm;
     segm.apply(frame, mask, phi, iterations, method, localized, rad, alpha);
