@@ -242,9 +242,11 @@ void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
             float dn = dPtr[x] > 0 ? 0 : dPtr[x];
 
             if (Dx > 0)
-                Gptr[x] = std::sqrt(std::max(ap*ap, bn*bn) + std::max(cp*cp, dn*dn)) - 1;
+                Gptr[x] = std::sqrt(std::max(ap*ap, bn*bn) +
+                                    std::max(cp*cp, dn*dn)) - 1;
             else if (Dx < 0)
-                Gptr[x] = std::sqrt(std::max(an*an, bp*bp) + std::max(cn*cn, dp*dp)) - 1;
+                Gptr[x] = std::sqrt(std::max(an*an, bp*bp) +
+                                    std::max(cn*cn, dp*dp)) - 1;
             else
                 Gptr[x] = 0.f;
 
