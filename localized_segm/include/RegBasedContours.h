@@ -10,59 +10,52 @@
 #define CHAN_VESE 0
 #define YEZZI 1
 
+/*!
+ * \brief Region-based contours class.
+ *
+ * This class offers the functionality to apply different region-based active
+ * contours using the level-set method (narrow band).
+ */
 class RegBasedContours
 {
 public:
-    RegBasedContours();
-    virtual ~RegBasedContours();
+    RegBasedContours(); //!< The default constructor.
+    virtual ~RegBasedContours(); //!< The default destructor.
 
-    void apply(cv::Mat frame, cv::Mat initMask, cv::Mat& seg, int iterations,
+    /*!
+     * \brief Apply a region-based active contour algorithm to the specified
+     * image.
+     *
+     * \param frame         the image to apply the algorithm to
+     * \param initMask      the initialization mask for the level-set function
+     * \param phi           the level-set function (empty cv::Mat)
+     * \param iterations    the number of iterations
+     * \param method        the contour's speed function method
+     * \param localized     weather the localized version of the specified
+     *                      method is supposed to be used
+     * \param rad           the radius of localized regions
+     * \param alpha         the curvature weight (higher -> smoother)
+     */
+    void apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
                int method=1, bool localized=false, int rad=18, float alpha=.2f);
+
+    /*!
+     * \brief Sussman-reinitialization to retain the level-set function to b a
+     * signed distance function (SDF).
+     *
+     * \param D     the function to apply the Sussman-reinitialization to
+     * \param dt    the time step.
+     */
     void sussmanReinit(cv::Mat&D, float dt);
 
-private:
+    /*!
+     * \brief Create a signed distance function (SDF) from a mask.
+     *
+     * \param mask  the mask that describes the initial contour: 1 inside and 0
+     *              outside the contour.
+     * \return      the signed distance function (SDF)
+     */
     cv::Mat mask2phi(cv::Mat mask);
 };
-
-/*!
- * \brief   Compute max value of a cv::Mat. Must not be empty - no check!
- * \param   mat the mat whose max value shoud be computed
- * \return  the max value
- * \throws  runtime_error on passing an empty cv::Mat
- */
-template <typename T>
-T max(cv::Mat& mat)
-{
-    if (mat.empty())
-        throw std::runtime_error("Empty cv::Mat object.");
-
-    T* ptr = mat.ptr<T>();
-    T maxVal = ptr[0];
-    for (int i = 1; i < mat.rows*mat.cols; i++)
-        if (ptr[i] > maxVal)
-            maxVal = ptr[i];
-    return maxVal;
-}
-
-/*!
- * \brief   Compute min value of a cv::Mat. Must not be empty - no check!
- * \param   min the mat whose max value shoud be computed
- * \return  the min value
- * \throws  runtime_error on passing an empty cv::Mat
- */
-
-template <typename T>
-T min(cv::Mat& mat)
-{
-    if (mat.empty())
-        throw std::runtime_error("Empty cv::Mat object.");
-
-    T* ptr = mat.ptr<T>();
-    T minVal = ptr[0];
-    for (int i = 1; i < mat.rows*mat.cols; i++)
-        if (ptr[i] < minVal)
-            minVal = ptr[i];
-    return minVal;
-}
 
 #endif // LOCALIZED_CONTOURS_H

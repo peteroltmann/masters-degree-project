@@ -51,12 +51,12 @@ int main(int argc, char** argv)
         std::cerr << "Invalid method: " << method << std::endl;
         return EXIT_FAILURE;
     }
-    if (rad == 0)
+    if (rad <= 0)
     {
-        // default radius dependant on frame size
+        // default radius dependent on frame size
         rad = std::round((frame.rows+frame.cols)/(2*8));
     }
-    if (alpha == 0)
+    if (alpha <= 0)
     {
         alpha = .2f;
     }
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
     if (localized)
     {
-        // make image smaller for fast computation
+        // make image smaller for faster computation
         cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
         cv::resize(mask, mask, cv::Size(mask.cols/2, mask.rows/2));
     }
