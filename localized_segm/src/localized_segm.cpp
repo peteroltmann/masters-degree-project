@@ -79,8 +79,14 @@ int main(int argc, char** argv)
     RegBasedContours segm;
     segm.apply(frame, mask, phi, iterations, method, localized, rad, alpha);
 
+    if (localized)
+    {
+        // make image smaller for faster computation
+        cv::resize(phi, phi, cv::Size(frame.cols*2, frame.rows*2));
+    }
+
     // show segmentation image
-    Mat seg = Mat::zeros(frame.size(), CV_8U);
+    Mat seg = Mat::zeros(phi.size(), CV_8U);
     seg.setTo(255, phi < 0);
     imshow(WINDOW_NAME, seg);
 

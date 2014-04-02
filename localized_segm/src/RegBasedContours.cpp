@@ -88,13 +88,31 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                                                 ypos-yneg+1));
                 cv::Mat subPhi = phi(cv::Rect(xneg, yneg, xpos-xneg+1,
                                               ypos-yneg+1));
-                cv::Mat intPts = subPhi <= 0;
-                cv::Mat extPts = subPhi > 0;
 
-                meanInt = cv::mean(subImg, intPts)[0];
-                meanExt = cv::mean(subImg, extPts)[0];
-                sumInt = cv::countNonZero(intPts);
-                sumExt = subImg.rows*subImg.cols - sumInt;
+                meanInt = 0.f;
+                meanExt = 0.f;
+                sumInt = FLT_EPSILON;
+                sumExt = FLT_EPSILON;
+                for (int y = 0; y < subPhi.rows; y++)
+                {
+                    const float* subPhiPtr = subPhi.ptr<float>(y);
+                    const float* subImgPtr = subImg.ptr<float>(y);
+                    for (int x = 0; x < subPhi.cols; x++)
+                    {
+                        if (subPhiPtr[x] <= 0)
+                        {
+                            meanInt += subImgPtr[x];
+                            sumInt++;
+                        }
+                        else
+                        {
+                            meanExt += subImgPtr[x];
+                            sumExt++;
+                        }
+                    }
+                }
+                meanInt /= sumInt;
+                meanExt /= sumExt;
             }
 
             // calculate speed function
