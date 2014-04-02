@@ -13,11 +13,11 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                              int iterations, int method, bool localized,
                              int rad, float alpha)
 {
-    cv::Mat image;
 #ifdef SHOW_CONTOUR_EVOLUTION
+    cv::Mat image;
     frame.copyTo(image);
-    frame.convertTo(frame, CV_32F);
 #endif
+    frame.convertTo(frame, CV_32F);
 
     // TODO assert frame.size() = initMask.size()
 
