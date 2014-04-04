@@ -732,7 +732,6 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         }
 
         float maxF = 0.f;
-        float curvature = 0.f;
         for (int i = 0; i < narrow.size(); i++)
         {
             int y = (int) narrow[i][0], x = (int) narrow[i][1];
@@ -800,6 +799,13 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             float absFi = std::fabs(Fi);
             if (absFi > maxF)
                 maxF = absFi;
+        }
+
+        // dphidt = F./max(abs(F)) + alpha*curvature;
+        // extra loop to normalize speed function and calculate curvature
+        for (int i = 0; i < narrow.size(); i++)
+        {
+            int y = (int) narrow[i][0], x = (int) narrow[i][1];
 
             // calculate curvature
             int xm1 = x == 0 ? 0 : x-1;
@@ -820,17 +826,13 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             phix *= 1.f/.2f;
             float phiy = (phi.at<float>(y,xp1) - phi.at<float>(y, xm1));
 
-            curvature = (phixx*phiy*phiy
+            float curvature = (phixx*phiy*phiy
                                - 2.f*phiy*phix*phixy
                                + phiyy*phix*phix)
                               / std::pow((phix*phix + phiy*phiy + FLT_EPSILON),
                                          3.f/2.f);
-        }
-
-        // dphidt = F./max(abs(F)) + alpha*curvature;
-        // extra loop to normalize speed function
-        for (int i = 0; i < narrow.size(); i++) // TODO curvature calculation here!!!
             narrow[i][2] = narrow[i][2]/maxF + alpha*curvature;
+        }
 
         maxF = FLT_MIN;
         for (int i = 0; i < narrow.size(); i++)
