@@ -4,6 +4,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <boost/format.hpp>
+#include <list>
 
 using namespace cv;
 
@@ -61,9 +62,8 @@ int main(int argc, char** argv)
         alpha = .2f;
     }
 
-
     Mat phi;
-    Mat mask = Mat::zeros(frame.size(), frame.type());
+    Mat mask = Mat::zeros(frame.size(), CV_8U);
     Mat roi(mask, maskRect);
     roi = Scalar::all(1);
 
@@ -77,7 +77,20 @@ int main(int argc, char** argv)
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
 
     RegBasedContours segm;
-    segm.apply(frame, mask, phi, iterations, method, localized, rad, alpha);
+
+#ifdef TIME_MEASUREMENT_TOTAL
+    int64 t1, t2;
+    t1 = cv::getTickCount();
+#endif
+
+//    segm.apply(frame, mask, phi, iterations, method, localized, rad, alpha);
+    segm.applySFM(frame, mask, phi, iterations, method, localized, rad, alpha);
+
+#ifdef TIME_MEASUREMENT_TOTAL
+    t2 = cv::getTickCount();
+    std::cout << "Total time [s]:" << (t2-t1)/cv::getTickFrequency()
+              << std::endl;
+#endif
 
     if (localized)
     {

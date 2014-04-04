@@ -22,6 +22,10 @@ public:
     RegBasedContours(); //!< The default constructor.
     virtual ~RegBasedContours(); //!< The default destructor.
 
+    void applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
+                  int method=1, bool localized=false, int rad=18,
+                  float alpha=.2f);
+
     /*!
      * \brief Apply a region-based active contour algorithm to the specified
      * image.

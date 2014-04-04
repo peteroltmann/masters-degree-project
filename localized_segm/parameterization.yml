@@ -1,10 +1,10 @@
 %YAML:1.0
-# imagePath: "../src/airplane.jpg"      # maskRect: [ 122, 110, 112, 112 ]
-imagePath: "../src/monkey.png"          # maskRect: [ 88, 36, 139, 177 ]
-# maskRect: [ 122, 110, 112, 112 ]      # [x, y, width, height]
-maskRect: [ 88, 36, 139, 177 ]
+imagePath: "../src/airplane.jpg"      # maskRect: [ 122, 110, 112, 112 ]
+# imagePath: "../src/monkey.png"          # maskRect: [ 88, 36, 139, 177 ]
+maskRect: [ 122, 110, 112, 112 ]      # [x, y, width, height]
+# maskRect: [ 88, 36, 139, 177 ]
 iterations: 600
-method: 1                               # 0: CHAN_VESE, 1: YEZZI
-localized: 1                            # true/false (0/1)
+method: 0                               # 0: CHAN_VESE, 1: YEZZI
+localized: 0                            # true/false (0/1)
 rad: 18                                 # radius of localized regions
 alpha: .2                               # curvature weight (higher -> smoother)
