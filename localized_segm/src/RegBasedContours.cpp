@@ -273,7 +273,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                         }
                         else
                         {
-                            sumInt += subImgPtr[x];
+                            sumExt += subImgPtr[x];
                             cntExt++;
                         }
                     }
