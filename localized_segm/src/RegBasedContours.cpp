@@ -35,9 +35,14 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     phi.setTo(3, intPts);
 
     // find zero level set, look at neighbours -> index 1 to length-1
+    // and calculate global means
+    float sumInt = 0.f, sumExt = 0.f;
+    float cntInt = FLT_EPSILON, cntExt = FLT_EPSILON;
+    float meanInt = 0.f, meanExt = 0.f;
     for (int y = 1; y < frame.rows-1; y++)
     {
         float* phiPtr = phi.ptr<float>(y);
+        const float* framePtr = frame.ptr<float>(y);
         int* labelPtr = label.ptr<int>(y);
         const uchar* initMaskPtr = initMask.ptr<uchar>(y);
         for (int x = 1; x < frame.cols-1; x++)
@@ -53,7 +58,26 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                 labelPtr[x] = 0;
                 phiPtr[x] = 0.f;
             }
+
+            if (!localized)
+            {
+                if (phiPtr[x] <= 0)
+                {
+                    sumInt += framePtr[x];
+                    cntInt++;
+                }
+                else
+                {
+                    sumExt += framePtr[x];
+                    cntExt++;
+                }
+            }
         }
+    }
+    if (!localized)
+    {
+        meanInt = sumInt / cntInt;
+        meanExt = sumInt / cntExt;
     }
 
     // find the +1 and -1 level set
@@ -204,39 +228,12 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         int64 t1, t2;
         t1 = cv::getTickCount();
 #endif
-        // calc global means
-        float meanInt = 0.f, meanExt = 0.f;
-        float sumInt = FLT_EPSILON, sumExt = FLT_EPSILON;
-        for (int y = 0; y < phi.rows; y++)
-        {
-            const float* phiPtr = phi.ptr<float>(y);
-            const float* framePtr = frame.ptr<float>(y);
-            for (int x = 0; x < phi.cols; x++)
-            {
-                if (!localized)
-                {
-                    if (phiPtr[x] <= 0)
-                    {
-                        meanInt += framePtr[x];
-                        sumInt++;
-                    }
-                    else
-                    {
-                        meanExt += framePtr[x];
-                        sumExt++;
-                    }
-                }
-            }
-        }
-        if (!localized)
-        {
-            meanInt /= sumInt;
-            meanExt /= sumExt;
-        }
 
         // temporary lists
         std::list<cv::Point> sz, sn1, sp1, sn2, sp2;
+        std::list<cv::Point> lin, lout;
         std::list<cv::Point>::iterator sz_it, sn1_it, sp1_it, sn2_it, sp2_it;
+        std::list<cv::Point>::iterator lin_it, lout_it;
         cv::Mat F(phi.size(), phi.type(), cv::Scalar(0));
 
         // calc F
@@ -257,10 +254,12 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                 cv::Mat subPhi = phi(cv::Rect(xneg, yneg, xpos-xneg+1,
                                               ypos-yneg+1));
 
+                sumInt = 0.f;
+                sumExt = 0.f;
+                cntInt = FLT_EPSILON;
+                cntExt = FLT_EPSILON;
                 meanInt = 0.f;
                 meanExt = 0.f;
-                sumInt = FLT_EPSILON;
-                sumExt = FLT_EPSILON;
                 for (int y = 0; y < subPhi.rows; y++)
                 {
                     const float* subPhiPtr = subPhi.ptr<float>(y);
@@ -269,18 +268,18 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                     {
                         if (subPhiPtr[x] <= 0)
                         {
-                            meanInt += subImgPtr[x];
-                            sumInt++;
+                            sumInt += subImgPtr[x];
+                            cntInt++;
                         }
                         else
                         {
-                            meanExt += subImgPtr[x];
-                            sumExt++;
+                            sumInt += subImgPtr[x];
+                            cntExt++;
                         }
                     }
                 }
-                meanInt /= sumInt;
-                meanExt /= sumExt;
+                meanInt = sumInt / cntInt;
+                meanExt = sumExt / cntExt;
             }
 
             // calculate speed function
@@ -297,8 +296,8 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             // F = -((u-v).*((I(idx)-u)./Ain+(I(idx)-v)./Aout));
             else if (method == YEZZI)
             {
-                Fi = -((meanInt-meanExt) * ((Ix-meanInt) / sumInt
-                                            + (Ix-meanExt) / sumExt));
+                Fi = -((meanInt-meanExt) * ((Ix-meanInt) / cntInt
+                                            + (Ix-meanExt) / cntExt));
             }
 
             F.at<float>(y, x) = Fi;
@@ -361,8 +360,19 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             // normalize to |F| < 0.5
             F.at<float>(y, x) = (F.at<float>(y, x) / maxF) *.45f;
 
+            float phixOld = phi.at<float>(y, x); // to check sign change
+
             // actualize phi
             float phix = phi.at<float>(y, x) += F.at<float>(y, x);
+
+            if (phixOld <= 0 && phix > 0) // from inside to outside
+            {
+                lout.push_back(*lz_it);
+            }
+            else if (phixOld > 0 && phix <= 0) // from outside to inside
+            {
+                lin.push_back(*lz_it);
+            }
 
             if (phix > .5f)
             {
@@ -641,6 +651,33 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             lp2.push_back(*sp2_it);
             label.at<int>(y, x) = 2;
         }
+
+        if (!localized)
+        {
+            // handle sign changes
+            for (lin_it = lin.begin(); lin_it != lin.end(); lin_it++)
+            {
+                int y = lin_it->y, x = lin_it->x;
+                float Ix = frame.at<float>(y, x);
+                sumInt += Ix;
+                sumExt -= Ix;
+                cntInt++;
+                cntExt--;
+            }
+
+            for (lout_it = lout.begin(); lout_it != lout.end(); lout_it++)
+            {
+                int y = lout_it->y, x = lout_it->x;
+                float Ix = frame.at<float>(y, x);
+                sumInt -= Ix;
+                sumExt += Ix;
+                cntInt--;
+                cntExt++;
+            }
+            meanInt = sumInt / cntInt;
+            meanExt = sumExt / cntExt;
+        }
+
 
 #ifdef TIME_MEASUREMENT
         t2 = cv::getTickCount();
