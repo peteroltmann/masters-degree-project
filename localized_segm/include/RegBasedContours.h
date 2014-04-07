@@ -22,6 +22,20 @@ public:
     RegBasedContours(); //!< The default constructor.
     virtual ~RegBasedContours(); //!< The default destructor.
 
+    /*!
+     * \brief Apply a region-based active contour algorithm to the specified
+     * image using the sparse-field method.
+     *
+     * \param frame         the image to apply the algorithm to
+     * \param initMask      the initialization mask for the level-set function
+     * \param phi           the level-set function (empty cv::Mat)
+     * \param iterations    the number of iterations
+     * \param method        the contour's speed function method
+     * \param localized     weather the localized version of the specified
+     *                      method is supposed to be used
+     * \param rad           the radius of localized regions
+     * \param alpha         the curvature weight (higher -> smoother)
+     */
     void applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
                   int method=1, bool localized=false, int rad=18,
                   float alpha=.2f);
