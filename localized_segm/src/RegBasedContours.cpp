@@ -14,6 +14,15 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                                 int iterations, int method, bool localized,
                                 int rad, float alpha)
 {
+#ifdef SAVE_AS_VIDEO
+    cv::VideoWriter videoOut;
+    videoOut.open("C:/Users/Peter/Desktop/hand.avi", -1, 60, frame.size(), false);
+    if (!videoOut.isOpened())
+    {
+        std::cerr << "Could not write output video" << std::endl;
+        return;
+    }
+#endif
 #ifdef SHOW_CONTOUR_EVOLUTION
     cv::Mat image;
     frame.copyTo(image);
@@ -694,17 +703,15 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
         cv::imshow(WINDOW_NAME, out);
         cv::waitKey(1);
-//        std::cout << "its: " << its << std::endl;
 
-//        cv::Mat out;
-//        image.copyTo(out);
-//        for (lz_it = lz.begin(); lz_it != lz.end(); lz_it++)
-//            out.at<uchar>(lz_it->y, lz_it->x) = 255;
-//        cv::imshow(WINDOW_NAME, out);
-//        cv::waitKey(1);
+#ifdef SAVE_AS_VIDEO
+        videoOut << out;
+#endif
 #endif
     }
-
+#ifdef SAVE_AS_VIDEO
+    videoOut.release();
+#endif
 }
 
 void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
