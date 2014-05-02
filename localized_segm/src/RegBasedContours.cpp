@@ -834,7 +834,7 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             else if (method == YEZZI)
             {
                 Fi = -((meanInt-meanExt) * ((Ix-meanInt) / sumInt
-                                            + (Ix-meanExt) / sumExt));
+                                          + (Ix-meanExt) / sumExt));
             }
 
             narrow[i][2] = Fi;
