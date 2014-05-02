@@ -331,16 +331,16 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
             float phi_i = phi.at<float>(y, x);
 
-            float phixx = (phi.at<float>(y, xp1)  - phi_i)
-                        - (phi_i                  - phi.at<float>(ym1,x));
-            float phiyy = (phi.at<float>(y,xp1)   - phi_i)
-                        - (phi_i                  - phi.at<float>(y,xm1));
-            float phixy = (phi.at<float>(yp1,xp1) - phi.at<float>(ym1,xp1))
-                        - (phi.at<float>(yp1,xm1) - phi.at<float>(ym1,xm1));
+            float phixx = (phi.at<float>(y, xp1)   - phi_i)
+                        - (phi_i                   - phi.at<float>(y, xm1));
+            float phiyy = (phi.at<float>(yp1, x)   - phi_i)
+                        - (phi_i                   - phi.at<float>(ym1, x));
+            float phixy = (phi.at<float>(yp1, xp1) - phi.at<float>(yp1, xm1))
+                        - (phi.at<float>(ym1, xp1) - phi.at<float>(ym1, xm1));
             phixy *= 1.f/4.f;
-            float phix = (phi.at<float>(yp1,x) - phi.at<float>(ym1,x));
+            float phix = (phi.at<float>(y, xp1) - phi.at<float>(y, xm1));
             phix *= 1.f/.2f;
-            float phiy = (phi.at<float>(y,xp1) - phi.at<float>(y, xm1));
+            float phiy = (phi.at<float>(yp1, x) - phi.at<float>(ym1, x));
 
             float curvature = (phixx*phiy*phiy
                                - 2.f*phiy*phix*phixy
@@ -859,22 +859,23 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
             float phi_i = phi.at<float>(y, x);
 
-            float phixx = (phi.at<float>(y, xp1)  - phi_i)
-                        - (phi_i                  - phi.at<float>(ym1,x));
-            float phiyy = (phi.at<float>(y,xp1)   - phi_i)
-                        - (phi_i                  - phi.at<float>(y,xm1));
-            float phixy = (phi.at<float>(yp1,xp1) - phi.at<float>(ym1,xp1))
-                        - (phi.at<float>(yp1,xm1) - phi.at<float>(ym1,xm1));
+            float phixx = (phi.at<float>(y, xp1)   - phi_i)
+                        - (phi_i                   - phi.at<float>(y, xm1));
+            float phiyy = (phi.at<float>(yp1, x)   - phi_i)
+                        - (phi_i                   - phi.at<float>(ym1, x));
+            float phixy = (phi.at<float>(yp1, xp1) - phi.at<float>(yp1, xm1))
+                        - (phi.at<float>(ym1, xp1) - phi.at<float>(ym1, xm1));
             phixy *= 1.f/4.f;
-            float phix = (phi.at<float>(yp1,x) - phi.at<float>(ym1,x));
+            float phix = (phi.at<float>(y, xp1) - phi.at<float>(y, xm1));
             phix *= 1.f/.2f;
-            float phiy = (phi.at<float>(y,xp1) - phi.at<float>(y, xm1));
+            float phiy = (phi.at<float>(yp1, x) - phi.at<float>(ym1, x));
 
             float curvature = (phixx*phiy*phiy
                                - 2.f*phiy*phix*phixy
                                + phiyy*phix*phix)
                               / std::pow((phix*phix + phiy*phiy + FLT_EPSILON),
                                          3.f/2.f);
+
             narrow[i][2] = narrow[i][2]/maxF + alpha*curvature;
         }
 
