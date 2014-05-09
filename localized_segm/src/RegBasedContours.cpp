@@ -16,7 +16,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 {
 #ifdef SAVE_AS_VIDEO
     cv::VideoWriter videoOut;
-    videoOut.open("C:/Users/Peter/Desktop/hand.avi", -1, 60, frame.size(), false);
+    videoOut.open("C:/Users/Peter/Desktop/output.avi", -1, 60, frame.size(), false);
     if (!videoOut.isOpened())
     {
         std::cerr << "Could not write output video" << std::endl;
