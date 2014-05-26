@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <exception>
+#include <list>
 
 #define WINDOW_NAME "Image"
 #define CHAN_VESE 0
@@ -74,6 +75,22 @@ public:
      * \return      the signed distance function (SDF)
      */
     cv::Mat mask2phi(cv::Mat mask);
+
+private:
+    /*!
+     * \brief Adds specified point to a specified (temporay) list with checking
+     * image bounds.
+     *
+     * \param listNo    the number of the list
+     * \param tmp       weather the point should be added to the temporary list
+     * \param p         the point to be added
+     * \param size      the image size for bound check
+     * \return          weather the point was added
+     */
+    bool pushBack(int listNo, bool tmp, cv::Point p, cv::Size size);
+
+    std::list<cv::Point> lz, ln1, lp1, ln2, lp2; //!< Level set lists.
+    std::list<cv::Point> sz, sn1, sp1, sn2, sp2; //!< Temporary lists.
 };
 
 #endif // LOCALIZED_CONTOURS_H

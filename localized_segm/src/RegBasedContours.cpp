@@ -3,7 +3,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
-#include <list>
 #include <boost/format.hpp>
 
 RegBasedContours::RegBasedContours() {}
@@ -33,7 +32,8 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     // = INITIALIZATION                                                        =
     // =========================================================================
 
-    std::list<cv::Point> lz, ln1, lp1, ln2, lp2;
+    // reset level set lists
+    lz.clear(); ln1.clear(); lp1.clear(); ln2.clear(); lp2.clear();
     std::list<cv::Point>::iterator lz_it, ln1_it, lp1_it, ln2_it, lp2_it;
 
     // initialize label map and phi
@@ -43,18 +43,18 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     label.setTo(3, intPts);
     phi.setTo(3, intPts);
 
-    // find zero level set, look at neighbours -> index 1 to length-1
+    // find zero level set, consider bounds (-> index 3 to length-4)
     // and calculate global means
     float sumInt = 0.f, sumExt = 0.f;
     float cntInt = FLT_EPSILON, cntExt = FLT_EPSILON;
     float meanInt = 0.f, meanExt = 0.f;
-    for (int y = 1; y < frame.rows-1; y++)
+    for (int y = 3; y < frame.rows-3; y++)
     {
         float* phiPtr = phi.ptr<float>(y);
         const float* framePtr = frame.ptr<float>(y);
         int* labelPtr = label.ptr<int>(y);
         const uchar* initMaskPtr = initMask.ptr<uchar>(y);
-        for (int x = 1; x < frame.cols-1; x++)
+        for (int x = 3; x < frame.cols-4; x++)
         {
             uchar top = initMask.at<uchar>(y-1, x);
             uchar right = initMask.at<uchar>(y, x+1);
@@ -92,7 +92,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     // find the +1 and -1 level set
     for (lz_it = lz.begin(); lz_it != lz.end(); lz_it++)
     {
-        // now bound check, because bound pixels werde not considered
+        // no bound check, because bound pixels werde not considered
         int y = lz_it->y, x = lz_it->x;
 
         // for each neighbour
@@ -142,7 +142,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     // find the -2 level set
     for (ln1_it = ln1.begin(); ln1_it != ln1.end(); ln1_it++)
     {
-        // now bound check, because bound pixels werde not considered
+        // no bound check, because bound pixels werde not considered
         int y = ln1_it->y, x = ln1_it->x;
 
         // for each neighbour
@@ -186,7 +186,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     // find the +2 level set
     for (lp1_it = lp1.begin(); lp1_it != lp1.end(); lp1_it++)
     {
-        // now bound check, because bound pixels werde not considered
+        // no bound check, because bound pixels werde not considered
         int y = lp1_it->y, x = lp1_it->x;
 
         // for each neighbour
@@ -238,8 +238,8 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         t1 = cv::getTickCount();
 #endif
 
-        // temporary lists
-        std::list<cv::Point> sz, sn1, sp1, sn2, sp2;
+        // reset temporary lists
+        sz.clear(); sn1.clear(); sp1.clear(); sn2.clear(); sp2.clear();
         std::list<cv::Point> lin, lout;
         std::list<cv::Point>::iterator sz_it, sn1_it, sp1_it, sn2_it, sp2_it;
         std::list<cv::Point>::iterator lin_it, lout_it;
@@ -385,12 +385,12 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
             if (phix > .5f)
             {
-                sp1.push_back(*lz_it);
+                pushBack(1, true, *lz_it, frame.size());
                 lz.erase(lz_it);
             }
             else if (phix < -.5f)
             {
-                sn1.push_back(*lz_it);
+                pushBack(-1, true, *lz_it, frame.size());
                 lz.erase(lz_it);
             }
         }
@@ -407,7 +407,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
             if (topL != 0 && rightL != 0 && bottomL != 0 && leftL != 0)
             {
-                sn2.push_back(*ln1_it);
+                pushBack(-2, true, *ln1_it, frame.size());
                 ln1.erase(ln1_it);
             }
             else
@@ -428,12 +428,12 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
                 if (phix >= -.5f)
                 {
-                    sz.push_back(*ln1_it);
+                    pushBack(0, true, *ln1_it, frame.size());
                     ln1.erase(ln1_it);
                 }
                 else if (phix < -1.5f)
                 {
-                    sn2.push_back(*ln1_it);
+                    pushBack(-2, true, *ln1_it, frame.size());
                     ln1.erase(ln1_it);
                 }
             }
@@ -451,7 +451,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
             if (topL != 0 && rightL != 0 && bottomL != 0 && leftL != 0)
             {
-                sp2.push_back(*lp1_it);
+                pushBack(2, true, *lp1_it, frame.size());
                 lp1.erase(lp1_it);
             }
             else
@@ -472,12 +472,12 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
                 if (phix <= .5f)
                 {
-                    sz.push_back(*lp1_it);
+                    pushBack(0, true, *lp1_it, frame.size());
                     lp1.erase(lp1_it);
                 }
                 else if (phix > 1.5f)
                 {
-                    sp2.push_back(*lp1_it);
+                    pushBack(2, true, *lp1_it, frame.size());
                     lp1.erase(lp1_it);
                 }
             }
@@ -517,7 +517,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
                 if (phix >= -1.5f)
                 {
-                    sn1.push_back(*ln2_it);
+                    pushBack(-1, true, *ln2_it, frame.size());
                     ln2.erase(ln2_it);
                 }
                 else if (phix < -2.5f)
@@ -563,7 +563,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
 
                 if (phix <= 1.5f)
                 {
-                    sp1.push_back(*lp2_it);
+                    pushBack(1, true, *lp2_it, frame.size());
                     lp2.erase(lp2_it);
                 }
                 else if (phix > 2.5f)
@@ -579,7 +579,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         for (sz_it = sz.begin(); sz_it != sz.end(); sz_it++)
         {
             int y = sz_it->y, x = sz_it->x;
-            lz.push_back(*sz_it);
+            lz.push_back(*sz_it); // no bound check: already done for sz
             label.at<int>(y, x) = 0;
         }
 
@@ -587,7 +587,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         for (sn1_it = sn1.begin(); sn1_it != sn1.end(); sn1_it++)
         {
             int y = sn1_it->y, x = sn1_it->x;
-            ln1.push_back(*sn1_it);
+            ln1.push_back(*sn1_it); // no bound check: already done for sn1
             label.at<int>(y, x) = -1;
 
             float phix = phi.at<float>(y, x);
@@ -595,22 +595,22 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             if (phi.at<float>(y-1, x) < -2.5f) // top
             {
                 phi.at<float>(y-1, x) = phix - 1.f;
-                sn2.push_back(cv::Point(x, y-1));
+                pushBack(-2, true, cv::Point(x, y-1), frame.size());
             }
             if (phi.at<float>(y, x+1) < -2.5f) // right
             {
                 phi.at<float>(y, x+1) = phix - 1.f;
-                sn2.push_back(cv::Point(x+1, y));
+                pushBack(-2, true, cv::Point(x+1, y), frame.size());
             }
             if (phi.at<float>(y+1, x) < -2.5f) // bottom
             {
                 phi.at<float>(y+1, x) = phix - 1.f;
-                sn2.push_back(cv::Point(x, y+1));
+                pushBack(-2, true, cv::Point(x, y+1), frame.size());
             }
             if (phi.at<float>(y, x-1) < -2.5f) // left
             {
                 phi.at<float>(y, x-1) = phix - 1.f;
-                sn2.push_back(cv::Point(x-1, y));
+                pushBack(-2, true, cv::Point(x-1, y), frame.size());
             }
         }
 
@@ -618,7 +618,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         for (sp1_it = sp1.begin(); sp1_it != sp1.end(); sp1_it++)
         {
             int y = sp1_it->y, x = sp1_it->x;
-            lp1.push_back(*sp1_it);
+            lp1.push_back(*sp1_it); // no bound check: already done for sp1
             label.at<int>(y, x) = 1;
 
             float phix = phi.at<float>(y, x);
@@ -626,22 +626,22 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
             if (phi.at<float>(y-1, x) > 2.5f) // top
             {
                 phi.at<float>(y-1, x) = phix + 1.f;
-                sp2.push_back(cv::Point(x, y-1));
+                pushBack(2, true, cv::Point(x, y-1), frame.size());
             }
             if (phi.at<float>(y, x+1) > 2.5f) // right
             {
                 phi.at<float>(y, x+1) = phix + 1.f;
-                sp2.push_back(cv::Point(x+1, y));
+                pushBack(2, true, cv::Point(x+1, y), frame.size());
             }
             if (phi.at<float>(y+1, x) > 2.5f) // bottom
             {
                 phi.at<float>(y+1, x) = phix + 1.f;
-                sp2.push_back(cv::Point(x, y+1));
+                pushBack(2, true, cv::Point(x, y+1), frame.size());
             }
             if (phi.at<float>(y, x-1) > 2.5f) // left
             {
                 phi.at<float>(y, x-1) = phix + 1.f;
-                sp2.push_back(cv::Point(x-1, y));
+                pushBack(2, true, cv::Point(x-1, y), frame.size());
             }
         }
 
@@ -649,7 +649,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         for (sn2_it = sn2.begin(); sn2_it != sn2.end(); sn2_it++)
         {
             int y = sn2_it->y, x = sn2_it->x;
-            ln2.push_back(*sn2_it);
+            ln2.push_back(*sn2_it); // no bound check: already done for sn2
             label.at<int>(y, x) = -2;
         }
 
@@ -657,7 +657,7 @@ void RegBasedContours::applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         for (sp2_it = sp2.begin(); sp2_it != sp2.end(); sp2_it++)
         {
             int y = sp2_it->y, x = sp2_it->x;
-            lp2.push_back(*sp2_it);
+            lp2.push_back(*sp2_it); // no bound check: already done for sp2
             label.at<int>(y, x) = 2;
         }
 
@@ -1000,4 +1000,62 @@ cv::Mat RegBasedContours::mask2phi(cv::Mat mask)
     cv::distanceTransform(mask, dist2, CV_DIST_L2, CV_DIST_MASK_PRECISE);
     phi = dist1 - dist2 + maskf - cv::Scalar::all(0.5f);
     return phi;
+}
+
+bool RegBasedContours::pushBack(int listNo, bool tmp, cv::Point p, cv::Size size)
+{
+    int x = p.x;
+    int y = p.y;
+    bool success = false;
+    switch (listNo)
+    {
+        case 0:
+            if (x < 3 || x > size.width-4 || y < 3 || y > size.height-4)
+                break;
+            if (!tmp)
+                lz.push_back(p);
+            else
+                sz.push_back(p);
+            success = true;
+            break;
+        case -1:
+            if (x < 2 || x > size.width-3 || y < 2 || y > size.height-3)
+                break;
+            if (!tmp)
+                ln1.push_back(p);
+            else
+                sn1.push_back(p);
+            success = true;
+            break;
+        case 1:
+            if (x < 2 || x > size.width-3 || y < 2 || y > size.height-3)
+                break;
+            if (!tmp)
+                lp1.push_back(p);
+            else
+                sp1.push_back(p);
+            success = true;
+            break;
+        case -2:
+            if (x < 1 || x > size.width-2 || y < 1 || y > size.height-2)
+                break;
+            if (!tmp)
+                ln2.push_back(p);
+            else
+                sn2.push_back(p);
+            success = true;
+            break;
+        case 2:
+            if (x < 1 || x > size.width-2 || y < 1 || y > size.height-2)
+                break;
+            if (!tmp)
+                lp2.push_back(p);
+            else
+                sp2.push_back(p);
+            success = true;
+            break;
+        default:
+            std::cerr << "List number out of range: " << listNo << std::endl;
+            break;
+    }
 }

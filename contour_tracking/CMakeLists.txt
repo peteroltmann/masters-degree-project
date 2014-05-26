@@ -5,6 +5,11 @@ cmake_minimum_required(VERSION 2.8)
 # -D"CMAKE_MAKE_PROGRAM:PATH=<absolute path>"
 # e.g.:
 # -D"CMAKE_MAKE_PROGRAM:PATH=C:/MinGW/bin/make.exe"
+#
+# Debug:
+# -D"CMAKE_BUILD_TYPE=Debug"
+# Release:
+# -D"CMAKE_BUILD_TYPE=Release"
 
 project(contour_tracking)
 
