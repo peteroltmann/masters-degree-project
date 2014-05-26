@@ -7,9 +7,16 @@
 
 int main(int argc, char** argv)
 {
+    bool vrm;
+    cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
+    fs["vrm"] >> vrm;
 
-    VRmUsbCam capture;
-    if (!capture.open())
+    cv::VideoCapture* capture;
+    if (vrm)
+        capture = new VRmUsbCam();
+    else
+        capture = new cv::VideoCapture();
+    if (!capture->open(0))
     {
         return EXIT_FAILURE;
     }
@@ -20,12 +27,13 @@ int main(int argc, char** argv)
 
     while (key != 'q')
     {
-        capture >> frame;
+        *capture >> frame;
         cv::imshow(WINDOW_NAME, frame);
         key = cv::waitKey(1);
     }
 
-    capture.close();
+    capture->release();
+    delete capture;
 
     return EXIT_SUCCESS;
 }

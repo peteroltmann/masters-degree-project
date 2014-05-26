@@ -2,12 +2,13 @@
 #define VRM_UBS_H
 
 #include <vrmusbcam2.h>
-#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
 
 /*!
  * \brief VRmagic USB camera accessing class.
  */
-class VRmUsbCam
+class VRmUsbCam : public cv::VideoCapture
 {
 public:
     VRmUsbCam(); //!< The default constructor.
@@ -17,30 +18,31 @@ public:
      * \brief Open VRmagic camera device for video capture.
      * \return true on success.
      */
-    bool open();
+    virtual bool open(int deviceNo);
 
     /*!
      * \brief Get next frame of the video capture.
      * \param frame the Mat where is frame is to be stored.
      */
-    void getNextFrame(cv::Mat& frame);
+    virtual bool read(cv::Mat& frame);
 
     /*!
-     * \brief Close VRmagic camera device.
+     * \brief Release VRmagic camera device.
      */
-    void close();
+    virtual void release();
 
     /*!
      * \brief Indicates if camera device is opened.
      * \return true if the camera device is opened.
      */
-    bool isOpened() const;
+    virtual bool isOpened() const;
 
     /*!
      * \brief Get next frame of the video capture.
-     * \param frame the Mat where is frame is to be stored.
+     * \param frame the Mat where is frame is to be stored
+     * \return A reference to this object.
      */
-    void operator >> (cv::Mat& frame);
+    virtual VideoCapture& operator >> (cv::Mat& frame);
 
 private:
 

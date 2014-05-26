@@ -14,10 +14,11 @@ VRmUsbCam::VRmUsbCam() :
 VRmUsbCam::~VRmUsbCam()
 {
     if (opened)
-        close();
+        release();
 }
 
-bool VRmUsbCam::open()
+// TODO: param ignored for now, just for opencv - take first suitable
+bool VRmUsbCam::open(int deviceNo)
 {
     initialize();
 
@@ -75,7 +76,7 @@ bool VRmUsbCam::open()
     return opened = true;
 }
 
-void VRmUsbCam::getNextFrame(cv::Mat& frame)
+bool VRmUsbCam::read(cv::Mat& frame)
 {
     // lock next (raw) image for read access, convert it to the desired
     // format and unlock it again, so that grabbing can
@@ -91,7 +92,7 @@ void VRmUsbCam::getNextFrame(cv::Mat& frame)
         else if(VRmUsbCamLastErrorWasTriggerStall())
             std::cerr << "trigger stall" << std::endl;
         else
-            logFailure();
+            return logFailure();
     }
 
     // note: p_source_img may be null in case a recoverable error
@@ -100,7 +101,7 @@ void VRmUsbCam::getNextFrame(cv::Mat& frame)
     if (p_source_img) {
         VRmDWORD frame_counter;
         if(!VRmUsbCamGetFrameCounter(p_source_img,&frame_counter))
-            logFailure();
+            return logFailure();
 
         // see, if we had to drop some frames due to data transfer stalls. if so,
         // output a message
@@ -130,15 +131,17 @@ void VRmUsbCam::getNextFrame(cv::Mat& frame)
         }
 
         if(!VRmUsbCamUnlockNextImage(device,&p_source_img))
-            logFailure();
+            return logFailure();
 
         // free the resources of the source image
         if(!VRmUsbCamFreeImage(&p_source_img))
-            logFailure();
+            return logFailure();
     }
+
+    return true;
 }
 
-void VRmUsbCam::close()
+void VRmUsbCam::release()
 {
     opened = false;
 
@@ -154,9 +157,10 @@ bool VRmUsbCam::isOpened() const
     return opened;
 }
 
-void VRmUsbCam::operator >>(cv::Mat& frame)
+cv::VideoCapture &VRmUsbCam::operator >>(cv::Mat& frame)
 {
-    getNextFrame(frame);
+    read(frame);
+    return *this;
 }
 
 void VRmUsbCam::initialize()
