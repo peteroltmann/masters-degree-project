@@ -55,7 +55,8 @@ CMakeLists.txt.user
 # Specific files #
 ##################
 
-paula2_frames_*
+palau2_frames_*
+palau2_initial_curve.png
 templ*
 output.*
 test.png
