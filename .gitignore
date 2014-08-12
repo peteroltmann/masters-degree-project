@@ -51,3 +51,11 @@ devel/
 ####################
 
 CMakeLists.txt.user
+
+# Specific files #
+##################
+
+paula2_frames_*
+templ*
+output.*
+test.png
