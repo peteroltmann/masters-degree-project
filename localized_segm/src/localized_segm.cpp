@@ -92,6 +92,11 @@ int main(int argc, char** argv)
               << std::endl;
 #endif
 
+//    cv::FileStorage fs2("../templ.yml", cv::FileStorage::WRITE);
+//    cv::Mat templ(phi.size(), CV_8U, cv::Scalar(0));
+//    templ.setTo(1, phi <= 0);
+//    fs2 << "templ" << templ;
+
     if (localized)
     {
         // make image smaller for faster computation

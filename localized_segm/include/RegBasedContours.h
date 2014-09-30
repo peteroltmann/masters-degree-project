@@ -38,7 +38,7 @@ public:
      * \param alpha         the curvature weight (higher -> smoother)
      */
     void applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
-                  int method=1, bool localized=false, int rad=18,
+                  int method=0, bool localized=false, int rad=18,
                   float alpha=.2f);
 
     /*!
