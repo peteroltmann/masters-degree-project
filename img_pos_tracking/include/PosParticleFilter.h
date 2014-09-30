@@ -65,6 +65,14 @@ public:
      */
     void resampleSystematic();
 
+    /*!
+     * \brief Redistribute particles.
+     *
+     * This is supposed to be done if the target moves out of bounds, which
+     * mostly happens if the target has been lost.
+     */
+    void redistribute(cv::Size frame_size);
+
     float gaussian(float mu, float sigma, float x);
 
     unsigned int num_p; //!< The number of particles.

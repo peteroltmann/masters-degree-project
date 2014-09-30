@@ -111,7 +111,6 @@ void PosParticleFilter::calcWeight(cv::Mat& frame, cv::Size templ_size)
     }
     mean_confidence = sum / num_p; // for systematic resampling
 
-    // TODO
     // Zur Berechnung der Likelyhood wird hier kein Vergleich zu einer Messung
     // verwendet, sondern ein Vergleich der Histogramme mit einem Template
     // (oder eben der Energien und Abstände)
@@ -175,6 +174,24 @@ void PosParticleFilter::resampleSystematic()
     // assign the mean state to it
     state.copyTo(p_new[0]);
     p = p_new;
+}
+
+void PosParticleFilter::redistribute(cv::Size frame_size)
+{
+    static const float lower_bound[NUM_PARAMS] = {0, 0, -.5, -.5};
+    static const float upper_bound[NUM_PARAMS] = {(float) frame_size.width,
+                                                  (float) frame_size.height,
+                                                  .5, .5};
+
+    std::cout << "Redistribute: " << state << " - " << confidence << std::endl;
+
+    for (int i = 0; i < num_p; i++)
+    {
+        for (int j = 0; j < NUM_PARAMS; j++)
+        {
+            p[i](j) = Random::getRNG().uniform(lower_bound[j], upper_bound[j]);
+        }
+    }
 }
 
 float PosParticleFilter::gaussian(float mu, float sigma, float x)
