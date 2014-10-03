@@ -46,6 +46,7 @@ Thumbs.db
 
 build/
 devel/
+input/
 
 # Qt Creator files #
 ####################

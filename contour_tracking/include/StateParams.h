@@ -6,12 +6,13 @@
  */
 enum StateParams
 {
-   PARAM_X,
-   PARAM_Y,
-   PARAM_X_VEL,
-   PARAM_Y_VEL,
-//   PARAM_SCALE,
-   NUM_PARAMS
+    PARAM_X,
+    PARAM_Y,
+    PARAM_X_VEL,
+    PARAM_Y_VEL,
+//    PARAM_ALPHA,
+//    PARAM_SCALE,
+    NUM_PARAMS
 };
 
 #endif // STATE_PARAMS_H

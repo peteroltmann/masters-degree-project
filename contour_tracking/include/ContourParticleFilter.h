@@ -1,10 +1,11 @@
 #ifndef CONTOUR_PARTICLE_FILTER_H
 #define CONTOUR_PARTICLE_FILTER_H
 
-#include "opencv2/core/core.hpp"
+#include <opencv2/core/core.hpp>
+#include <memory>
+#include "Contour.h"
 
 class RegBasedContours;
-class Contour;
 
 class ContourParticleFilter
 {
@@ -58,17 +59,24 @@ public:
 
     int num_particles; //!< The number of particles.
     cv::Mat_<float> state; //!< The currently estimated state.
+    Contour state_c; //!< The currently estimated state's contour parameter.
+
     std::vector<float> initial; //!< The initializing state.
     std::vector<float> sigma; //!< The standard deviations for each parameter.
     cv::Mat_<float> T; //!< The state transition matrix.
+
     std::vector<cv::Mat_<float>> p; //!< The particles.
-    std::vector<Contour*> pc; //!< The contour parameters of the particles.
+    //!< The contour parameters of the particles.
+    std::vector<std::shared_ptr<Contour>> pc;
     std::vector<cv::Mat_<float>> p_new; //!< The new, resampled particles.
-    std::vector<Contour*> pc_new; //!< The new, resampled contour parameters.
+    //!< The new, resampled contour parameters.
+    std::vector<std::shared_ptr<Contour>> pc_new;
+
     std::vector<float> w; //!< The weights of the particles.
     float confidence; //!< The confidence of the currently estimated state.
     std::vector<float> w_cumulative; //!< The weights for systematic resampling.
     float mean_confidence; //!< The mean confidence for systematic resampling.
+
     cv::RNG& rng; //!< The random number generator reference.
 
     cv::Mat_<uchar> templ;

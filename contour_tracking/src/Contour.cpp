@@ -22,6 +22,8 @@ void Contour::transform_affine(cv::Mat_<float>& state)
             {
                 int xn = x + state(PARAM_X);
                 int yn = y + state(PARAM_Y);
+//                int xn = cos(state(PARAM_ALPHA)) * x - sin(state(PARAM_ALPHA)) * y;
+//                int yn = sin(state(PARAM_ALPHA)) * x + cos(state(PARAM_ALPHA)) * y;
                 if (yn >= 0 && yn < contour_mask.rows &&
                     xn >= 0 && xn < contour_mask.cols)
                 {
@@ -59,6 +61,55 @@ void Contour::evolve_contour(RegBasedContours& segm, cv::Mat& frame,
 
 void Contour::calc_energy(RegBasedContours &segm)
 {
+/*
     segm.calcF();
-    energy = cv::sum(cv::abs(segm._F))[0];
+    energy = std::abs(cv::sum(segm._F)[0]);
+*/
+    // calc energy
+    float sumInt = 0, sumExt = 0;
+    float cntInt = 0, cntExt = 0;
+    float meanInt, meanExt;
+
+    for (int y = 0; y < segm._frame.rows; y++)
+    {
+        float* I = segm._frame.ptr<float>(y);
+        float* phi = segm._phi.ptr<float>(y);
+        for (int x = 0; x < segm._frame.cols; x++)
+        {
+            if (phi[x] <= 0)
+            {
+                sumInt += I[x];
+                cntInt++;
+            }
+            else
+            {
+                sumExt += I[x];
+                cntExt++;
+            }
+        }
+    }
+    meanInt = sumInt / cntInt;
+    meanExt = sumExt / cntExt;
+
+    float E = 0;
+    for (int y = 0; y < segm._frame.rows; y++)
+    {
+        float* I = segm._frame.ptr<float>(y);
+        float* phi = segm._phi.ptr<float>(y);
+        for (int x = 0; x < segm._frame.cols; x++)
+        {
+            if (phi[x] <= 0.f)
+                E = std::pow(I[x] - meanInt, 2);
+            else
+                E = std::pow(I[x] - meanExt, 2);
+        }
+    }
+//    std::cout << E << std::endl;
+//    E /= segm._frame.rows*segm._frame.cols;
+    energy = E;
+}
+
+void Contour::calc_distance(RegBasedContours &segm)
+{
+
 }

@@ -8,7 +8,8 @@
 ContourParticleFilter::ContourParticleFilter(int num_particles) :
     num_particles(num_particles),
     rng(Random::getRNG()),
-    confidence(1.f/num_particles)
+    confidence(1.f/num_particles),
+    pc_new(num_particles)
 {
     // state transitions matrix with constant velocity model
     const float DT = 1;
@@ -16,6 +17,12 @@ ContourParticleFilter::ContourParticleFilter(int num_particles) :
                                                     0, 1,  0, DT,
                                                     0, 0,  1,  0,
                                                     0, 0,  0,  1);
+
+//    T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0, 0,
+//                                                    0, 1,  0, DT, 0,
+//                                                    0, 0,  1,  0, 0,
+//                                                    0, 0,  0,  1, 0,
+//                                                    0, 0,  0,  0, 1);
 
     // init particle data structure
     for(int i = 0; i < num_particles; i++)
@@ -25,7 +32,7 @@ ContourParticleFilter::ContourParticleFilter(int num_particles) :
        w.push_back(confidence); // init with uniform distributed weight
        w_cumulative.push_back(1.f);
 
-       pc.push_back(new Contour());
+       pc.push_back(std::shared_ptr<Contour>(new Contour));
     }
 }
 
@@ -49,6 +56,7 @@ void ContourParticleFilter::init(const cv::Mat_<uchar> templ)
             float noise = rng.gaussian(sigma[j]);
             p[i](j) = initial[j] + noise;
         }
+        templ.copyTo(pc[i]->contour_mask);
     }
 
     // initial state
@@ -75,17 +83,17 @@ void ContourParticleFilter::calc_weight(float templ_energy)
     float sum = 0.f;
     for (int i = 0; i < num_particles; i++)
     {
-        w[i] = gaussian(templ_energy, 5.f, pc[i]->energy);
-//        w[i] = std::exp(- pc[i]->energy);
+        w[i] = gaussian(pc[i]->energy, 25.f, templ_energy);
+//        w[i] = std::exp(- pc[i]->energy/templ_energy);
         sum += w[i];
         w_cumulative[i] = sum; // for systematic resampling
     }
     mean_confidence = sum / num_particles; // for systematic resampling
 
-    for (int i = 0; i < num_particles; i++)
-    {
-        w[i] /= sum;
-    }
+//    for (int i = 0; i < num_particles; i++)
+//    {
+//        w[i] /= sum;
+//    }
 
     // TODO: CONSIDER DISTANCE FROM BEFORE TO AFTER CONTOUR EVOLUTION
 }
@@ -93,14 +101,21 @@ void ContourParticleFilter::calc_weight(float templ_energy)
 void ContourParticleFilter::weighted_mean_estimate()
 {
     float sum = 0.f;
+    float w_max = 0.f;
+    int w_max_idx = 0.f;
     cv::Mat_<float> tmp = cv::Mat_<float>::zeros(NUM_PARAMS, 1);
     for (int i = 0; i < num_particles; i++)
     {
         tmp += p[i] * w[i];
         sum += w[i];
-
+        if (w_max < w[i])
+        {
+            w_max = w[i];
+            w_max_idx = i;
+        }
     }
     state = tmp / sum;
+    pc[w_max_idx]->contour_mask.copyTo(state_c.contour_mask);
 }
 
 void ContourParticleFilter::resample()
@@ -123,8 +138,10 @@ void ContourParticleFilter::resample()
             index = (index + 1) % num_particles;
         }
         p[index].copyTo(p_new[i]);
+//        pc_new[i] = pc[index];
     }
     p = p_new;
+//    pc = pc_new;
 }
 
 void ContourParticleFilter::resample_systematic()
@@ -138,9 +155,12 @@ void ContourParticleFilter::resample_systematic()
             j++;
         }
         p[j].copyTo(p_new[i]);
+//        pc_new[i] = pc[j];
     }
     // Since particle 0 always gets chosen by the above,
     // assign the mean state to it
     state.copyTo(p_new[0]);
+//    state_c.contour_mask.copyTo(pc_new[0]->contour_mask);
     p = p_new;
+//    pc = pc_new;
 }
