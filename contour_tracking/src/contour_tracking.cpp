@@ -71,8 +71,6 @@ int main(int argc, char *argv[])
         capture >> frame;
         if (frame.empty())
             break;
-
-        capture >> frame;
         cv::cvtColor(frame, frame, CV_RGB2GRAY);
 
 #ifndef PF_AC
@@ -130,7 +128,8 @@ int main(int argc, char *argv[])
 
         templ.copyTo(pf.pc[0]->contour_mask);
         pf.pc[0]->transform_affine(pf.state);
-        pf.pc[0]->evolve_contour(segm, frame, 150); // <-- The "trick", usually NUM_ITS
+        // The "trick": more evolution steps, usually: NUM_ITERATIONS
+        pf.pc[0]->evolve_contour(segm, frame, NUM_ITERATIONS);
         draw_contour(frame, pf.pc[0]->contour_mask);
 //        draw_contour(frame, pf.state_c.contour_mask);
 
