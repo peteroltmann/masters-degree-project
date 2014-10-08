@@ -109,7 +109,23 @@ void Contour::calc_energy(RegBasedContours &segm)
     energy = E;
 }
 
-void Contour::calc_distance(RegBasedContours &segm)
+void Contour::calc_distance(RegBasedContours& segm)
 {
+    float hs = 0.f, hi = 0.f, h = 0.f;
+    distance = 0.f;
+    for (int y = 0; y < phi_mu.rows; y++)
+    {
+        const float* phi = segm._phi.ptr<float>(y);
+        const float* phiMu = phi_mu.ptr<float>(y);
+        for (int x = 0; x < phi_mu.cols; x++)
+        {
+            if (phi[x] >= 0)
+                hs = 1.f;
+            if (phiMu[x] >= 0)
+                hi = 1.f;
+            h = (hs + hi) / 2.f;
 
+            distance += std::pow(phiMu[x] - phi[x], 2) * h;
+        }
+    }
 }

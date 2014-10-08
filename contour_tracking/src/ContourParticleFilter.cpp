@@ -3,6 +3,7 @@
 #include "StateParams.h"
 #include "Contour.h"
 
+#include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
 ContourParticleFilter::ContourParticleFilter(int num_particles) :
@@ -29,7 +30,7 @@ ContourParticleFilter::ContourParticleFilter(int num_particles) :
     {
        p.push_back(cv::Mat_<float>(NUM_PARAMS, 1));
        p_new.push_back(cv::Mat_<float>(NUM_PARAMS, 1));
-       w.push_back(confidence); // init with uniform distributed weight
+       w.push_back(1.f/num_particles); // init with uniform distributed weight
        w_cumulative.push_back(1.f);
 
        pc.push_back(std::shared_ptr<Contour>(new Contour));
@@ -40,7 +41,11 @@ ContourParticleFilter::~ContourParticleFilter() {}
 
 void ContourParticleFilter::init(const cv::Mat_<uchar> templ)
 {
-    initial = {0.f, 0.f, 0.f, 0.f};
+    // calculate center of template contour (translation from [0, 0])
+    cv::Moments m = cv::moments(templ, true);
+    cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
+
+    initial = {center.x, center.y, 0.f, 0.f};
     sigma = {2.f, 2.f, .5f, .5f};
 
     std::cout << "Init with state: [ ";
@@ -80,11 +85,14 @@ void ContourParticleFilter::predict()
 
 void ContourParticleFilter::calc_weight(float templ_energy)
 {
+    confidence = gaussian(state_c.energy, 25.f, templ_energy);
+
     float sum = 0.f;
     for (int i = 0; i < num_particles; i++)
     {
-        w[i] = gaussian(pc[i]->energy, 25.f, templ_energy);
 //        w[i] = std::exp(- pc[i]->energy/templ_energy);
+        w[i] = gaussian(pc[i]->energy, 25.f, templ_energy);
+
         sum += w[i];
         w_cumulative[i] = sum; // for systematic resampling
     }
