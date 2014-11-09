@@ -41,12 +41,12 @@ ContourParticleFilter::~ContourParticleFilter() {}
 
 void ContourParticleFilter::init(const cv::Mat_<uchar> templ)
 {
-    // calculate center of template contour (translation from [0, 0])
+    // calculate mass center of template contour (translation from [0, 0])
     cv::Moments m = cv::moments(templ, true);
     cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
 
     initial = {center.x, center.y, 0.f, 0.f};
-    sigma = {2.f, 2.f, .5f, .5f};
+    sigma = {2.f, 2.f, .5f, .5f}; // distortion deviation
 
     std::cout << "Init with state: [ ";
     for( int j = 0; j < NUM_PARAMS; j++)
@@ -83,27 +83,28 @@ void ContourParticleFilter::predict()
     }
 }
 
-void ContourParticleFilter::calc_weight(float templ_energy)
+void ContourParticleFilter::calc_weight(float templ_energy, float sigma)
 {
-    confidence = gaussian(state_c.energy, 25.f, templ_energy);
+
+    float energy_mean = 0.f;
+    for (int i = 0; i < num_particles; i++)
+    {
+        energy_mean += pc[i]->energy;
+    }
+
+    confidence = gaussian(state_c.energy/energy_mean, sigma, templ_energy/energy_mean);
 
     float sum = 0.f;
     for (int i = 0; i < num_particles; i++)
     {
-//        w[i] = std::exp(- pc[i]->energy/templ_energy);
-        w[i] = gaussian(pc[i]->energy, 25.f, templ_energy);
+        pc[i]->energy /= energy_mean; // normalize energy
+
+        w[i] = std::exp(-pc[i]->energy/(sigma*sigma));
 
         sum += w[i];
         w_cumulative[i] = sum; // for systematic resampling
     }
     mean_confidence = sum / num_particles; // for systematic resampling
-
-//    for (int i = 0; i < num_particles; i++)
-//    {
-//        w[i] /= sum;
-//    }
-
-    // TODO: CONSIDER DISTANCE FROM BEFORE TO AFTER CONTOUR EVOLUTION
 }
 
 void ContourParticleFilter::weighted_mean_estimate()
@@ -146,10 +147,8 @@ void ContourParticleFilter::resample()
             index = (index + 1) % num_particles;
         }
         p[index].copyTo(p_new[i]);
-//        pc_new[i] = pc[index];
     }
     p = p_new;
-//    pc = pc_new;
 }
 
 void ContourParticleFilter::resample_systematic()
@@ -163,12 +162,9 @@ void ContourParticleFilter::resample_systematic()
             j++;
         }
         p[j].copyTo(p_new[i]);
-//        pc_new[i] = pc[j];
     }
     // Since particle 0 always gets chosen by the above,
     // assign the mean state to it
     state.copyTo(p_new[0]);
-//    state_c.contour_mask.copyTo(pc_new[0]->contour_mask);
     p = p_new;
-//    pc = pc_new;
 }

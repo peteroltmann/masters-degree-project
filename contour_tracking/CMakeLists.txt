@@ -39,7 +39,6 @@ endif()
 include_directories("C:\\Program Files (x86)\\Common Files\\VRmagic\\VRmUsbCamSDK\\include")
 target_link_libraries(${PROJECT_NAME} "C:\\Program Files (x86)\\Common Files\\VRmagic\\VRmUsbCamSDK\\lib\\x86\\vrmusbcam2.lib")
 
-# -DSAVE_VIDEO
 # -DPF_AC
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DPF_AC")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")

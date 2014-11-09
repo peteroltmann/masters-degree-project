@@ -1,2 +1,28 @@
 %YAML:1.0
-vrm: 1                            # true/false (0/1)
+num_particles: 100                  # number of particles, default: 100
+num_iterations: 10                  # number of iterations, default: 10
+sigma: 0.025                        # sigma for weight calculation
+
+# path to template YML file
+templ_path: "../templ.yml"
+# templ_path: "../templ_walking.yml"
+# templ_path: "../templ_fish.yml"     # don't convert color!
+
+# path to input image sequence 
+cvt_color: 0                        # 1: convert to grayscale 0: do nothing
+input_path: "../input/car_orig.avi"
+# input_path: "../input/walking_2.avi"
+# input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
+
+# path to output video and file name
+save_video: 0                       # save output video, true/false (0/1)
+fps: 15.0                           # frames per second for saved video
+# output_path: "../output/out.avi"
+output_path: "C:/Users/Peter/Desktop/output.avi"
+
+# path to output folder and filename for each frame as an image
+save_img_seq: 0                     # save image seqence, true/false (0/1)
+# format string to fill with frame number
+save_img_path: "../output/car/car%03d.png"
+# save_img_path: "../output/walking/walking%03d.png"
+# save_img_path: "../output/fish/fish%03d.png"

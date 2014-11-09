@@ -35,7 +35,7 @@ public:
      * \brief Calculate the particle weights and the mean confidence.
      * \param segm  the segmentation to use
      */
-    void calc_weight(float templ_energy);
+    void calc_weight(float templ_energy, float sigma);
 
     /*!
      * \brief Estimate the state.

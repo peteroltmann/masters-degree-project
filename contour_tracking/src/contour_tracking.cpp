@@ -1,6 +1,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
+#include <boost/format.hpp>
 
 #include "Contour.h"
 #include "RegBasedContours.h"
@@ -20,35 +21,77 @@ void draw_contour(cv::Mat& window_image, const cv::Mat_<uchar>& contour_mask,
 
 int main(int argc, char *argv[])
 {
-    bool vrm;
-    cv::Mat_<float> templ;
+    // see 'parameterization.yml' for description
+    int num_particles;
+    int num_iterations;
+    float sigma;
+    std::string templ_path;
+    bool cvt_color;
+    std::string input_path;
+    bool save_video;
+    double fps;
+    std::string output_path;
+    bool save_img_seq;
+    std::string save_img_path;
+
     cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
-    cv::FileStorage fs2("../templ.yml", cv::FileStorage::READ);
-//    cv::FileStorage fs2("../templ_walking.yml", cv::FileStorage::READ);
-//    cv::FileStorage fs2("../templ_plane.yml", cv::FileStorage::READ);
-    fs["vrm"] >> vrm;
-    fs2["templ"] >> templ;
+    fs["num_particles"] >> num_particles;
+    fs["num_iterations"] >> num_iterations;
+    fs["sigma"] >> sigma;
+    fs["templ_path"] >> templ_path;
+    fs["cvt_color"] >> cvt_color;
+    fs["input_path"] >> input_path;
+    fs["save_video"] >> save_video;
+    fs["fps"] >> fps;
+    fs["output_path"] >> output_path;
+    fs["save_img_seq"] >> save_img_seq;
+    fs["save_img_path"] >> save_img_path;
 
-    const int NUM_PARTICLES = 100;
-    const int NUM_ITERATIONS = 10;
+    cv::FileStorage fs2(templ_path, cv::FileStorage::READ);
+    if (!fs.isOpened())
+    {
+        std::cerr << "Error loading template: '" << templ_path << "'"
+                  << std::endl;
+        return EXIT_FAILURE;
+    }
 
+    if (num_particles <= 0)
+    {
+        std::cout << "invalid value for 'num_particles', '100' used instead"
+                  << std::endl;
+        num_particles = 100;
+    }
+
+    if (num_iterations <= 0)
+    {
+        std::cout << "invalid value for 'num_iterations', '10' used instead"
+                  << std::endl;
+        num_particles = 10;
+    }
+
+    if (sigma <= 0.f)
+    {
+        std::cout << "invalid value for 'sigma', '25.0' used instead"
+                  << std::endl;
+        sigma = 25.f;
+    }
+
+    int key = 0;
     cv::namedWindow(WINDOW_NAME);
     cv::Mat window_image;
-    int key = 0;
     cv::Mat frame;
 
     RegBasedContours segm;
-    ContourParticleFilter pf(NUM_PARTICLES);
+    ContourParticleFilter pf(num_particles);
+    cv::Mat_<float> templ;
+    fs2["templ"] >> templ;
     pf.init(templ);
 
     Contour templ_contour;
     templ.copyTo(templ_contour.contour_mask);
 
     // for this video: cv::cvtColor(frame, frame, CV_RGB2GRAY);
-    cv::VideoCapture capture("../input/car_orig.avi");
-//    cv::VideoCapture capture("../input/walking_2.avi");
-//    cv::VideoCapture capture("../input/PlaneSequence/frame_00013451.pgm");
-//    cv::VideoCapture capture("../input/palau2_gray_cropped/palau2_frames_%04d.png");
+    cv::VideoCapture capture(input_path);
 
     if (!capture.isOpened())
     {
@@ -56,16 +99,16 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-#ifdef SAVE_VIDEO
-#define VIDEO_FILE "C:/Users/Peter/Desktop/output.avi"
     cv::VideoWriter videoOut;
-    videoOut.open(VIDEO_FILE, -1, 15, frame.size(), false);
-    if (!videoOut.isOpened())
+    if(save_video)
     {
-        std::cerr << "Could not write output video" << std::endl;
-        return EXIT_FAILURE;
+        videoOut.open(output_path, -1, fps, frame.size(), false);
+        if (!videoOut.isOpened())
+        {
+            std::cerr << "Could not write output video" << std::endl;
+            return EXIT_FAILURE;
+        }
     }
-#endif
 
 #ifdef PF_AC
     // first frame
@@ -73,20 +116,22 @@ int main(int argc, char *argv[])
 
     segm.setFrame(frame);
     segm.init(templ);
-//    segm.iterate();
     templ_contour.calc_energy(segm);
-    std::cout << templ_contour.energy << std::endl;
 #else
     Contour contour;
     templ.copyTo(contour.contour_mask);
 #endif
 
+    int cnt_frame = 0;
     while (key != 'q')
     {
         capture >> frame;
         if (frame.empty())
             break;
-        cv::cvtColor(frame, frame, CV_RGB2GRAY);
+
+        if (cvt_color)
+            cv::cvtColor(frame, frame, CV_RGB2GRAY);
+
         cv::cvtColor(frame, window_image, CV_GRAY2BGR);
 
 #ifdef PF_AC
@@ -100,36 +145,24 @@ int main(int argc, char *argv[])
                                       -center.x, -center.y, 0, 0);
         cv::Mat_<float> tmp = templ_at_zero + pf.state;
 
+        // transformation and evolution: start from template
         templ.copyTo(pf.state_c.contour_mask);
         pf.state_c.transform_affine(tmp);
-        pf.state_c.evolve_contour(segm, frame, NUM_ITERATIONS);
+        pf.state_c.evolve_contour(segm, frame, num_iterations);
         pf.state_c.calc_energy(segm);
 
-        // DO TRANSFORM AND EVOLUTION: START FROM TEMPLATE
-        // TODO: UPDATE EACH CONTOUR WITH EVOLUTION PREDICTION
+        // predcit deformations for each particle
         for (int i = 0; i < pf.num_particles; i++)
         {
             cv::Mat_<float> tmp = templ_at_zero + pf.p[i];
 
             templ.copyTo(pf.pc[i]->contour_mask);
             pf.pc[i]->transform_affine(tmp);
-            pf.pc[i]->evolve_contour(segm, frame, NUM_ITERATIONS);
+            pf.pc[i]->evolve_contour(segm, frame, num_iterations);
             pf.pc[i]->calc_energy(segm);
         }
 
-        pf.calc_weight(templ_contour.energy);
-
-//        float w_max = 0.f;
-//        int w_max_idx = 0;
-//        for (int i = 0; i < pf.num_particles; i++)
-//        {
-//            if (pf.w[i] > w_max)
-//            {
-//                w_max = pf.w[i];
-//                w_max_idx = i;
-//            }
-//        }
-
+        pf.calc_weight(templ_contour.energy, sigma);
 
         // draw particles
 //        for (int i = 0; i < pf.num_particles; i++)
@@ -141,11 +174,10 @@ int main(int argc, char *argv[])
         // draw template and estimated contour
         // The "trick": additional evolution steps
 //        pf.state_c.evolve_contour(segm, frame, 200);
-        draw_contour(window_image, templ, cv::Scalar(255, 0, 0));
+        if (cnt_frame == 0)
+            draw_contour(window_image, templ, cv::Scalar(255, 0, 0));
         draw_contour(window_image, pf.state_c.contour_mask,
                      cv::Scalar(255, 255, 255));
-//        draw_contour(window_image, pf.pc[w_max_idx]->contour_mask,
-//                     cv::Scalar(0, 255, 0));
 
         pf.weighted_mean_estimate();
         pf.resample();
@@ -164,10 +196,17 @@ int main(int argc, char *argv[])
         cv::imshow(WINDOW_NAME, window_image);
         key = cv::waitKey(1);
 
-#ifdef SAVE_VIDEO
-        videoOut << window_image;
-#endif
+        if (save_img_seq)
+        {
+            std::stringstream s;
+            s << boost::format(save_img_path) % cnt_frame;
+            cv::imwrite(s.str(), window_image);
+        }
 
+        if (save_video)
+            videoOut << window_image;
+
+        cnt_frame++;
     }
 #ifdef SAVE_VIDEO
     videoOut.release();
