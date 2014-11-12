@@ -7,6 +7,12 @@
 
 class RegBasedContours;
 
+/*!
+ * \brief Contour particle filter class.
+ *
+ * This class offers the functionality and data to apply a particle filter for
+ * level set active contours.
+ */
 class ContourParticleFilter
 {
 public:
@@ -79,8 +85,13 @@ public:
 
     cv::RNG& rng; //!< The random number generator reference.
 
-    cv::Mat_<uchar> templ;
-
+    /*!
+     * \brief The gaussian function.
+     * \param mu    the mean of the gaussian
+     * \param sigma the standard deviation of the gaussian
+     * \param x     the input variable
+     * \return      the value of the gaussian function at <tt>x</tt>
+     */
     float gaussian(float mu, float sigma, float x) {
         return exp(- pow(mu - x, 2) / pow(sigma, 2) / 2.0) / sqrt(2.0 * CV_PI * pow(sigma, 2));
     }

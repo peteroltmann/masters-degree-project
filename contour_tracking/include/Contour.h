@@ -30,13 +30,32 @@ public:
      */
     void evolve_contour(RegBasedContours& segm, cv::Mat &frame, int iterations);
 
+    /*!
+     * \brief Calculate the contour energy.
+     * \param   segm    Contour evolution object reference, that holds the level
+     *                  set data.
+     */
     void calc_energy(RegBasedContours& segm);
+
+    /*!
+     * \brief Calculate the distance of two contours. The level set data of the
+     * other contour (<tt>phi_mu</tt>) has to be saved in the used intance of
+     * this class.
+     *
+     * \param   segm    Contour evolution object reference, that holds the level
+     *                  set data.
+     */
     void calc_distance(RegBasedContours& segm);
 
     cv::Mat_<uchar> contour_mask; //!< Masks interior pixel (interior = 1/ != 0)
     cv::Mat_<float> phi_mu; //!< Level set function before contour evolution.
-    float energy;
+    float energy; //!< the calculated contour energy
+
+    /*!
+     * the calculated contour distance from before to after
+     */
     float distance;
+
 };
 
 #endif // CONTOUR_H
