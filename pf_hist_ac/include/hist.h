@@ -5,7 +5,7 @@
 
 // TODO: make "helper" functions module from this
 
-void calc_hist(cv::Mat& bgr, cv::Mat& hist, cv::Mat& mask);
+void calc_hist(cv::Mat& bgr, cv::Mat& hist, cv::Mat mask=cv::Mat());
 
 cv::Mat draw_hist(cv::Mat& hist);
 

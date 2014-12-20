@@ -24,7 +24,7 @@ public:
      * Call to initialize members with default values. You can also initialize
      * members bindividually.
      */
-    void init(const cv::Mat_<uchar> templ);
+    void init(const cv::Rect templ_rect);
 
     /*!
      * \brief Predict state and particles.
@@ -33,9 +33,8 @@ public:
 
     /*!
      * \brief Calculate the particle weights and the mean confidence.
-     * \param segm  the segmentation to use
      */
-    void calc_weight(cv::Mat &frame, cv::Mat_<uchar> templ,
+    void calc_weight(cv::Mat &frame, cv::Size templ_size,
                      cv::Mat_<float>& templ_hist, float sigma);
 
     /*!
@@ -59,12 +58,11 @@ public:
     void resample_systematic();
 private:
     float calc_probability(cv::Mat& frame_roi, cv::Mat_<float>& templ_hist,
-                           cv::Mat& mask, float sigma);
+                           float sigma);
 
 public:
     int num_particles; //!< The number of particles.
     cv::Mat_<float> state; //!< The currently estimated state.
-    Contour state_c; //!< The currently estimated state's contour parameter.
 
     std::vector<float> initial; //!< The initializing state.
     std::vector<float> sigma; //!< The standard deviations for each parameter.

@@ -13,16 +13,16 @@ ParticleFilter::ParticleFilter(int num_particles) :
 {
     // state transitions matrix with constant velocity model
     const float DT = 1;
-    T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0,
-                                                    0, 1,  0, DT,
-                                                    0, 0,  1,  0,
-                                                    0, 0,  0,  1);
+//    T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0,
+//                                                    0, 1,  0, DT,
+//                                                    0, 0,  1,  0,
+//                                                    0, 0,  0,  1);
 
-//    T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0, 0,
-//                                                    0, 1,  0, DT, 0,
-//                                                    0, 0,  1,  0, 0,
-//                                                    0, 0,  0,  1, 0,
-//                                                    0, 0,  0,  0, 1);
+    T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0, 0,
+                                                    0, 1,  0, DT, 0,
+                                                    0, 0,  1,  0, 0,
+                                                    0, 0,  0,  1, 0,
+                                                    0, 0,  0,  0, 1);
 
     // init particle data structure
     for(int i = 0; i < num_particles; i++)
@@ -36,14 +36,12 @@ ParticleFilter::ParticleFilter(int num_particles) :
 
 ParticleFilter::~ParticleFilter() {}
 
-void ParticleFilter::init(const cv::Mat_<uchar> templ)
+void ParticleFilter::init(const cv::Rect templ_rect)
 {
-    // calculate mass center of template contour (translation from [0, 0])
-    cv::Moments m = cv::moments(templ, true);
-    cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
-
-    initial = {center.x, center.y, 0.f, 0.f};
-    sigma = {2.f, 2.f, .5f, .5f}; // distortion deviation
+    // [x, y, x_vel, y_vel, scale]
+    initial = {templ_rect.x + templ_rect.width/2.f,
+               templ_rect.y + templ_rect.height/2.f, 0.f, 0.f, 1.f};
+    sigma = {2.f, 2.f, .5f, .5f, .1f}; // distortion deviation
 
     std::cout << "Init with state: [ ";
     for( int j = 0; j < NUM_PARAMS; j++)
@@ -79,46 +77,39 @@ void ParticleFilter::predict()
     }
 }
 
-void ParticleFilter::calc_weight(cv::Mat& frame, cv::Mat_<uchar> templ,
+void ParticleFilter::calc_weight(cv::Mat& frame, cv::Size templ_size,
                                  cv::Mat_<float>& templ_hist, float sigma)
 {
     cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
     // estimated state confidence
-    // transform template contour (translation only) and calc hist
+    float scale = std::max(.1f, state(PARAM_SCALE));
+    state(PARAM_SCALE) = scale;
+    int width = std::round(templ_size.width * scale);
+    int height = std::round(templ_size.height * scale);
+    int x = std::round(state(PARAM_X)) - width / 2;
+    int y = std::round(state(PARAM_Y)) - height / 2;
 
-    cv::Moments m = cv::moments(templ, true);
-    cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
-    cv::Mat_<float> templ_at_zero = (cv::Mat_<float>(4, 1) <<
-                                  -center.x, -center.y, 0, 0);
-    cv::Mat_<float> tmp = templ_at_zero + state;
+    cv::Rect region = cv::Rect(x, y, width, height) & bounds;
+    cv::Mat frame_roi(frame, region);
 
-    templ.copyTo(state_c.contour_mask);
-    state_c.transform_affine(tmp);
-
-//    cv::Rect region = cv::Rect(x, y, width, height) & bounds;
-//    cv::Mat frame_roi(frame, region);
-
-    // TODO
-    confidence = calc_probability(frame, templ_hist, state_c.contour_mask,
-                                  sigma);
+    confidence = calc_probability(frame_roi, templ_hist, sigma);
 
     // particle confidence
     float sum = 0.f;
     for (int i = 0; i < num_particles; i++)
     {
-        cv::Mat_<float> tmp = templ_at_zero + p[i];
+        float scale = std::max(.1f, p[i](PARAM_SCALE));
+        p[i](PARAM_SCALE) = scale;
+        int width = std::round(templ_size.width * scale);
+        int height = std::round(templ_size.height * scale);
+        int x = std::round(p[i](PARAM_X)) - width / 2;
+        int y = std::round(p[i](PARAM_Y)) - height / 2;
 
-        Contour pi_c;
-        templ.copyTo(pi_c.contour_mask);
-        pi_c.transform_affine(tmp);
+        cv::Rect region = cv::Rect(x, y, width, height) & bounds;
+        cv::Mat frame_roi(frame, region);
 
-        // TODO calc histogram only in a ROI around the contour for faster
-        // computation
-//        cv::Rect region = cv::Rect(x, y, width, height) & bounds;
-//        cv::Mat frame_roi(frame, region);
-
-        w[i] = calc_probability(frame, templ_hist, pi_c.contour_mask, sigma);
+        w[i] = calc_probability(frame_roi, templ_hist, sigma);
         sum += w[i];
         w_cumulative[i] = sum; // for systematic resampling
 
@@ -189,20 +180,16 @@ void ParticleFilter::resample_systematic()
 }
 
 float ParticleFilter::calc_probability(cv::Mat &frame_roi,
-                                       cv::Mat_<float> &templ_hist,
-                                       cv::Mat& mask, float sigma)
+                                       cv::Mat_<float> &templ_hist, float sigma)
 {
     static cv::Mat_<float> hist;
 
-    calc_hist(frame_roi, hist, mask);
-//    cv::normalize(hist, hist);
-//    float bc = cv::compareHist(templ_hist, hist, CV_COMP_BHATTACHARYYA);
+    calc_hist(frame_roi, hist);
     normalize(hist);
     float bc = calcBC(templ_hist, hist);
 
     float prob = 0.f;
     if (bc <= 1.f) // total missmatch
         prob = std::exp(-sigma * bc*bc);
-//        prob = 1 - bc;
     return prob;
 }

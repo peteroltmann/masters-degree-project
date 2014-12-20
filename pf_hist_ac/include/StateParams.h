@@ -11,7 +11,7 @@ enum StateParams
     PARAM_X_VEL,
     PARAM_Y_VEL,
 //    PARAM_ALPHA,
-//    PARAM_SCALE,
+    PARAM_SCALE,
     NUM_PARAMS
 };
 

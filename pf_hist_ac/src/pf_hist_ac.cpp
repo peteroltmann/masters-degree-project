@@ -112,10 +112,10 @@ int main(int argc, char *argv[])
 
     cv::Mat_<uchar> templ;
     fs2["templ"] >> templ;
+    cv::Rect templ_rect = bounding_rect(templ);
     cv::Mat_<uchar> templ_frame0;
     cv::Mat_<float> templ_hist;
 
-    cv::Rect estimate_bound;
     cv::Rect evolved_bound;
     cv::Rect templ_bound;
 
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
     RegBasedContours segm;
     ParticleFilter pf(num_particles);
-    pf.init(templ);
+    pf.init(templ_rect);
 
     cv::VideoCapture capture(input_path);
 
@@ -158,19 +158,15 @@ int main(int argc, char *argv[])
 
         cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
-#ifndef PARTICLE_FILTER
-        segm.applySFM(frame, contour, 50);
-        contour.setTo(0);
-        contour.setTo(1, segm._phi <= 0);
-#endif // !PARTICLE_FILTER
-
-#ifdef PARTICLE_FILTER
-
         // calc template histogram on first frame
         if (templ_hist.empty())
         {
+
             templ.copyTo(templ_frame0);
             frame.copyTo(templ_image);
+            cv::cvtColor(frame, window_templ_image, CV_GRAY2BGR);
+
+            cv::Mat frame_roi(frame, templ_rect);
             calc_hist(frame, templ_hist, templ);
             normalize(templ_hist);
         }
@@ -180,7 +176,7 @@ int main(int argc, char *argv[])
         // =====================================================================
 
         pf.predict();
-        pf.calc_weight(frame, templ, templ_hist, sigma);
+        pf.calc_weight(frame, templ_rect.size(), templ_hist, sigma);
 
 /*
         for (int i = 0; i < pf.num_particles; i++)
@@ -191,63 +187,73 @@ int main(int argc, char *argv[])
 
 /*
         // draw particles
-        cv::Moments m = cv::moments(templ, true);
-        cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
-        cv::Mat_<float> templ_at_zero = (cv::Mat_<float>(4, 1) <<
-                                      -center.x, -center.y, 0, 0);
         for (int i = 0; i < pf.num_particles; i++)
         {
-            cv::Mat_<float> tmp = templ_at_zero + pf.p[i];
-            Contour pi_c;
-            templ.copyTo(pi_c.contour_mask);
-            pi_c.transform_affine(tmp);
-            draw_contour(window_image, pi_c.contour_mask, RED);
+            int x = std::round(pf.p[i](PARAM_X)) - templ_rect.width/2;
+            int y = std::round(pf.p[i](PARAM_Y)) - templ_rect.height/2;
+            cv::Rect state_rect = cv::Rect(x, y, templ_rect.width,
+                                           templ_rect.height) & bounds;
+            cv::rectangle(window_image, state_rect, RED, 1);
         }
 */
 
         // draw predicted estimate
-        draw_contour(window_image, pf.state_c.contour_mask, GREEN);
+        int width = round(templ_rect.width * pf.state(PARAM_SCALE));
+        int height = round(templ_rect.height * pf.state(PARAM_SCALE));
+        int x = std::round(pf.state(PARAM_X)) - width/2;
+        int y = std::round(pf.state(PARAM_Y)) - height/2;
+        cv::Rect state_rect = cv::Rect(x, y, width, height) & bounds;
+
+        cv::rectangle(window_image, state_rect, GREEN, 1);
+
 
         // =====================================================================
         // = CONTOUR EVOLUTION
         // =====================================================================
 
-        // evolve contour
+        // init contour with state rectangle
         Contour state_c_evolved;
-        pf.state_c.contour_mask.copyTo(state_c_evolved.contour_mask);
+        state_c_evolved.contour_mask = cv::Mat_<uchar>::zeros(frame.size());
+        cv::Mat state_roi(state_c_evolved.contour_mask, state_rect);
+        state_roi.setTo(1);
+
+        // evolve contour
         state_c_evolved.evolve_contour(segm, frame, num_iterations);
         draw_contour(window_image, state_c_evolved.contour_mask, WHITE);
 
-/*
-        // get rid of eventual blobs
-        cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
-        inOut.setTo(255, state_c_evolved.contour_mask == 1);
-        std::vector< std::vector<cv::Point> > contours;
-        cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-        state_c_evolved.contour_mask.setTo(0);
-        cv::drawContours(state_c_evolved.contour_mask, contours, -1, WHITE, CV_FILLED);
-        state_c_evolved.contour_mask.setTo(1, state_c_evolved.contour_mask == 255);
-*/
+        // get rid of eventual blobs
+//        cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
+//        inOut.setTo(255, state_c_evolved.contour_mask == 1);
+//        std::vector< std::vector<cv::Point> > contours;
+//        cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+
+//        state_c_evolved.contour_mask.setTo(0);
+//        cv::drawContours(state_c_evolved.contour_mask, contours, -1, WHITE, CV_FILLED);
+//        state_c_evolved.contour_mask.setTo(1, state_c_evolved.contour_mask == 255);
 
         // =====================================================================
         // = AFTER CONTOUR EVOLUTION                                           =
         // =====================================================================
 
+        // draw template contour
+        draw_contour(window_templ_image, templ, BLUE);
+
         // calculate bounding rectangles
-        estimate_bound = bounding_rect(pf.state_c.contour_mask);
         evolved_bound = bounding_rect(state_c_evolved.contour_mask);
         templ_bound = bounding_rect(templ);
-//        cv::rectangle(window_image, evolved_bound, WHITE);
-//        cv::rectangle(window_image, estimate_bound, GREEN);
+        cv::rectangle(window_image, evolved_bound, WHITE);
+        cv::rectangle(window_templ_image, templ_bound, BLUE);
 
         cv::Mat_<uchar> templ_roi(templ, templ_bound);
         cv::Mat_<uchar> evolved_roi(state_c_evolved.contour_mask, evolved_bound);
 
+/* =============================================================================
+
         // check if template and template histogram can be adpated in
         // user-defined checking interval
         cv::Mat_<float> evolved_hist;
-        calc_hist(frame, evolved_hist, state_c_evolved.contour_mask);
+        calc_hist(frame, evolved_hist);
         normalize(evolved_hist);
         float bc_templ = calcBC(templ_hist, evolved_hist);
 
@@ -261,56 +267,44 @@ int main(int argc, char *argv[])
                                         CV_CONTOURS_MATCH_I1);
         hu1.push_back(hu_templ_1);
 
-/*
         // detect successful tracking, so template can be adapted
-        if (bc_templ < 0.1) // just try out
-        {
-            state_c_evolved.contour_mask.copyTo(templ);
-            calc_hist(frame, templ_hist, templ);
-            normalize(templ_hist);
-            frame.copyTo(templ_image);
-        }
-*/
+//        if (bc_templ < 0.1) // just try out
+//        {
+//            state_c_evolved.contour_mask.copyTo(templ);
+//            calc_hist(frame, templ_hist, templ);
+//            normalize(templ_hist);
+//            frame.copyTo(templ_image);
+//        }
 
 
         // TODO histogram adpation instead of replacement?
         //      consider more frames that keep this status
-/*
-        if ((cnt_frame % 19 == 0 && cnt_frame != 0) &&
-            (hu_templ < .15f && bc_templ < .35f))
-        {
-            state_c_evolved.contour_mask.copyTo(templ);
-            calc_hist(frame, templ_hist, templ);
-//            cv::normalize(templ_hist, templ_hist);
-            normalize(templ_hist);
-//            frame.copyTo(templ_image);
-            cv::cvtColor(frame, templ_image, CV_GRAY2BGR);
-        }
-*/
 
-/*
-        bool lost = bc_templ > 0.2; // detected as lost
-        if (lost)
-        {
-            cv::rectangle(window_image, cv::Rect(5, 5, 20, 20), RED, -1);
-            state_c_evolved.contour_mask.copyTo(templ);
-            calc_hist(frame, templ_hist, templ);
-            normalize(templ_hist);
-            cv::cvtColor(frame, templ_image, CV_GRAY2BGR);
-        }
-*/
+//        if ((cnt_frame % 19 == 0 && cnt_frame != 0) &&
+//            (hu_templ < .15f && bc_templ < .35f))
+//        {
+//            state_c_evolved.contour_mask.copyTo(templ);
+//            calc_hist(frame, templ_hist, templ);
+////            cv::normalize(templ_hist, templ_hist);
+//            normalize(templ_hist);
+////            frame.copyTo(templ_image);
+//            cv::cvtColor(frame, templ_image, CV_GRAY2BGR);
+//        }
+
+//        bool lost = bc_templ > 0.2; // detected as lost
+//        if (lost)
+//        {
+//            cv::rectangle(window_image, cv::Rect(5, 5, 20, 20), RED, -1);
+//            state_c_evolved.contour_mask.copyTo(templ);
+//            calc_hist(frame, templ_hist, templ);
+//            normalize(templ_hist);
+//            cv::cvtColor(frame, templ_image, CV_GRAY2BGR);
+//        }
 
 
 //        cv::imshow("Template Histogram", draw_hist(templ_hist));
 //        cv::imshow("Estimate Histogram", draw_hist(estimate_hist));
 //        cv::imshow("Evolved Histogram", draw_hist(evolved_hist));
-
-
-
-        // draw template contour
-        cv::cvtColor(templ_image, window_templ_image, CV_GRAY2BGR);
-        draw_contour(window_templ_image, templ, BLUE);
-        cv::rectangle(window_templ_image, templ_bound, BLUE);
 
 
         // output data
@@ -335,6 +329,8 @@ int main(int argc, char *argv[])
 
         std::cout << std::endl;
 
+============================================================================= */
+
         // =====================================================================
         // = UPDATE PARTICLE FILTER                                            =
         // =====================================================================
@@ -343,10 +339,6 @@ int main(int argc, char *argv[])
         pf.weighted_mean_estimate();
         pf.resample();
 //        pf.resample_systematic();
-
-#else
-        draw_contour(frame, contour);
-#endif // PF_AC
 
         // =====================================================================
         // = IMAGE OUTPUT                                                      =
@@ -373,7 +365,6 @@ int main(int argc, char *argv[])
         cnt_frame++;
     }
 
-#ifdef PARTICLE_FILTER
     // =========================================================================
     // = HU OUTPUT (MATLAB)                                                    =
     // =========================================================================
@@ -381,7 +372,6 @@ int main(int argc, char *argv[])
     std::ofstream hu_output("C:/Users/Peter/Documents/MATLAB/humatch.m");
     hu_output << "hu1 = " << hu1 << ";" << std::endl;
     hu_output.close();
-#endif
 
     if (save_video)
         videoOut.release();

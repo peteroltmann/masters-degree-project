@@ -3,7 +3,7 @@
 #include <opencv2/core/core.hpp>
 #include <iostream>
 
-void calc_hist(cv::Mat& bgr, cv::Mat& hist, cv::Mat& mask)
+void calc_hist(cv::Mat& bgr, cv::Mat& hist, cv::Mat mask)
 {
     static const int channels[] = {0};
     static const int hist_size[] = {256};
