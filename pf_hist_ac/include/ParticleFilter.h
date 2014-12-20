@@ -36,7 +36,7 @@ public:
      * \param segm  the segmentation to use
      */
     void calc_weight(cv::Mat &frame, cv::Mat_<uchar> templ,
-                     cv::Mat_<float>& templ_hist);
+                     cv::Mat_<float>& templ_hist, float sigma);
 
     /*!
      * \brief Estimate the state.
@@ -59,7 +59,7 @@ public:
     void resample_systematic();
 private:
     float calc_probability(cv::Mat& frame_roi, cv::Mat_<float>& templ_hist,
-                           cv::Mat& mask);
+                           cv::Mat& mask, float sigma);
 
 public:
     int num_particles; //!< The number of particles.

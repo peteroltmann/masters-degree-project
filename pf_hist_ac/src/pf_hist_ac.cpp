@@ -30,40 +30,102 @@ void draw_contour(cv::Mat& window_image, const cv::Mat_<uchar>& contour_mask,
 
 int main(int argc, char *argv[])
 {
-    const int NUM_PARTICLES = 100;
-    const int NUM_ITERATIONS = 200;
-//    cv::Rect templ(245, 10, 90, 65);
-    cv::Mat_<uchar> templ;
-    cv::Mat_<uchar> templ_frame0;
-    cv::Mat_<float> templ_hist;
-    cv::Rect evolved_bound;
-    cv::Rect templ_bound;
+    // see 'parameterization.yml' for description
+    int num_particles;
+    int num_iterations;
+    float sigma;
+    std::string templ_path;
+    bool cvt_color;
+    std::string input_path;
+    bool save_video;
+    double fps;
+    std::string output_path;
+    bool save_img_seq;
+    std::string save_img_path;
 
-    cv::Mat_<float> hu1, hu2, hu4; // for matlab output
+    cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
+    fs["num_particles"] >> num_particles;
+    fs["num_iterations"] >> num_iterations;
+    fs["sigma"] >> sigma;
+    fs["templ_path"] >> templ_path;
+    fs["cvt_color"] >> cvt_color;
+    fs["input_path"] >> input_path;
+    fs["save_video"] >> save_video;
+    fs["fps"] >> fps;
+    fs["output_path"] >> output_path;
+    fs["save_img_seq"] >> save_img_seq;
+    fs["save_img_path"] >> save_img_path;
+
+    cv::FileStorage fs2(templ_path, cv::FileStorage::READ);
+    if (!fs.isOpened())
+    {
+        std::cerr << "Error loading template: '" << templ_path << "'"
+                  << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (num_particles <= 0)
+    {
+        std::cout << "invalid value for 'num_particles', '100' used instead"
+                  << std::endl;
+        num_particles = 100;
+    }
+
+    if (num_iterations <= 0)
+    {
+        std::cout << "invalid value for 'num_iterations', '10' used instead"
+                  << std::endl;
+        num_particles = 10;
+    }
+
+    if (sigma <= 0.f)
+    {
+        std::cout << "invalid value for 'sigma', '25.0' used instead"
+                  << std::endl;
+        sigma = 20.f;
+    }
+
+
 
 //    cv::FileStorage fs("../templ.yml", cv::FileStorage::READ);
 //    cv::FileStorage fs("../templ_walking.yml", cv::FileStorage::READ);
-    cv::FileStorage fs("../templ_fish.yml", cv::FileStorage::READ);
-    fs["templ"] >> templ;
-
-    int key = 0;
-    cv::namedWindow(WINDOW_NAME);
-    cv::namedWindow(WINDOW_TEMPALTE_NAME);
-    cv::namedWindow(WINDOW_ROI_NAME, CV_WINDOW_NORMAL);
-    cv::Mat frame;
-    cv::Mat templ_image;
-    cv::Mat window_image;
-    cv::Mat window_templ_image;
-
-    RegBasedContours segm;
-
-    ParticleFilter pf(NUM_PARTICLES);
-    pf.init(templ);
+//    cv::FileStorage fs("../templ_fish.yml", cv::FileStorage::READ);
+//    cv::FileStorage fs("../templ_aircraft.yml", cv::FileStorage::READ);
+//    cv::FileStorage fs("../templ_aircraft_big.yml", cv::FileStorage::READ);
 
     // for this video: cv::cvtColor(frame, frame, CV_RGB2GRAY);
 //    cv::VideoCapture capture("../input/car_orig.avi");
 //    cv::VideoCapture capture("../input/walking_2.avi");
-    cv::VideoCapture capture("../input/palau2_gray_cropped/palau2_frames_%04d.png");
+//    cv::VideoCapture capture("../input/palau2_gray_cropped/palau2_frames_%04d.png");
+//    cv::VideoCapture capture("../input/aerobatics_1_3.avi");
+//    cv::VideoCapture capture("../input/big_1_3.avi");
+
+    int key = 0;
+    cv::namedWindow(WINDOW_NAME);
+    cv::namedWindow(WINDOW_TEMPALTE_NAME);
+//    cv::namedWindow(WINDOW_ROI_NAME, CV_WINDOW_NORMAL);
+    cv::Mat frame;
+
+    cv::Mat templ_image;
+    cv::Mat window_image;
+    cv::Mat window_templ_image;
+
+    cv::Mat_<uchar> templ;
+    fs2["templ"] >> templ;
+    cv::Mat_<uchar> templ_frame0;
+    cv::Mat_<float> templ_hist;
+
+    cv::Rect estimate_bound;
+    cv::Rect evolved_bound;
+    cv::Rect templ_bound;
+
+    cv::Mat_<float> hu1; // for matlab output
+
+    RegBasedContours segm;
+    ParticleFilter pf(num_particles);
+    pf.init(templ);
+
+    cv::VideoCapture capture(input_path);
 
     if (!capture.isOpened())
     {
@@ -71,16 +133,16 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-#ifdef SAVE_VIDEO
-#define VIDEO_FILE "C:/Users/Peter/Desktop/output.avi"
     cv::VideoWriter videoOut;
-    videoOut.open(VIDEO_FILE, -1, 15, frame.size(), false);
-    if (!videoOut.isOpened())
+    if(save_video)
     {
-        std::cerr << "Could not write output video" << std::endl;
-        return EXIT_FAILURE;
+        videoOut.open(output_path, -1, fps, frame.size(), false);
+        if (!videoOut.isOpened())
+        {
+            std::cerr << "Could not write output video" << std::endl;
+            return EXIT_FAILURE;
+        }
     }
-#endif
 
     int cnt_frame = 0;
     while (key != 'q')
@@ -89,33 +151,36 @@ int main(int argc, char *argv[])
         if (frame.empty())
             break;
 
-//        cv::rectangle(frame, templ, cv::Scalar(255, 255, 255), 1);
-//        cv::imshow(WINDOW_NAME, frame);
-//        cv::waitKey(0);
+        if (cvt_color)
+            cv::cvtColor(frame, frame, CV_RGB2GRAY);
 
-        if (templ_hist.empty())
-        {
-            templ.copyTo(templ_frame0);
-            frame.copyTo(templ_image);
-//            cv::Mat frame_roi(frame, templ);
-            calc_hist(frame, templ_hist, templ);
-//            cv::normalize(templ_hist, templ_hist);
-            normalize(templ_hist);
-        }
-
-//        cv::cvtColor(frame, frame, CV_RGB2GRAY);
         cv::cvtColor(frame, window_image, CV_GRAY2BGR);
+
+        cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
 #ifndef PARTICLE_FILTER
         segm.applySFM(frame, contour, 50);
         contour.setTo(0);
         contour.setTo(1, segm._phi <= 0);
-#endif // !PF_AC
+#endif // !PARTICLE_FILTER
 
 #ifdef PARTICLE_FILTER
 
+        // calc template histogram on first frame
+        if (templ_hist.empty())
+        {
+            templ.copyTo(templ_frame0);
+            frame.copyTo(templ_image);
+            calc_hist(frame, templ_hist, templ);
+            normalize(templ_hist);
+        }
+
+        // =====================================================================
+        // = PARTICLE FILTER                                                   =
+        // =====================================================================
+
         pf.predict();
-        pf.calc_weight(frame, templ, templ_hist);
+        pf.calc_weight(frame, templ, templ_hist, sigma);
 
 /*
         for (int i = 0; i < pf.num_particles; i++)
@@ -123,8 +188,6 @@ int main(int argc, char *argv[])
             std::cout << pf.w[i] << std::endl;
         }
 */
-
-        cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
 /*
         // draw particles
@@ -142,60 +205,72 @@ int main(int argc, char *argv[])
         }
 */
 
-        if (cnt_frame == 0)
-            draw_contour(window_image, templ, cv::Scalar(255, 0, 0));
+        // draw predicted estimate
         draw_contour(window_image, pf.state_c.contour_mask, GREEN);
+
+        // =====================================================================
+        // = CONTOUR EVOLUTION
+        // =====================================================================
 
         // evolve contour
         Contour state_c_evolved;
         pf.state_c.contour_mask.copyTo(state_c_evolved.contour_mask);
-
-        state_c_evolved.evolve_contour(segm, frame, NUM_ITERATIONS);
+        state_c_evolved.evolve_contour(segm, frame, num_iterations);
         draw_contour(window_image, state_c_evolved.contour_mask, WHITE);
 
+/*
         // get rid of eventual blobs
-//        cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
-//        inOut.setTo(255, state_c_evolved.contour_mask == 1);
-//        std::vector< std::vector<cv::Point> > contours;
-//        cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+        cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
+        inOut.setTo(255, state_c_evolved.contour_mask == 1);
+        std::vector< std::vector<cv::Point> > contours;
+        cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-//        state_c_evolved.contour_mask.setTo(0);
-//        cv::drawContours(state_c_evolved.contour_mask, contours, -1, WHITE, CV_FILLED);
-//        state_c_evolved.contour_mask.setTo(1, state_c_evolved.contour_mask == 255);
+        state_c_evolved.contour_mask.setTo(0);
+        cv::drawContours(state_c_evolved.contour_mask, contours, -1, WHITE, CV_FILLED);
+        state_c_evolved.contour_mask.setTo(1, state_c_evolved.contour_mask == 255);
+*/
+
+        // =====================================================================
+        // = AFTER CONTOUR EVOLUTION                                           =
+        // =====================================================================
 
         // calculate bounding rectangles
+        estimate_bound = bounding_rect(pf.state_c.contour_mask);
         evolved_bound = bounding_rect(state_c_evolved.contour_mask);
         templ_bound = bounding_rect(templ);
-
-        cv::rectangle(window_image, evolved_bound, GREEN);
-
-        // after contour evolution:
-        // check if template and template histogram can be adpated in
-        // user-defined checking interval
-        cv::Mat_<float> evolved_hist;
-        calc_hist(frame, evolved_hist, state_c_evolved.contour_mask);
-//        cv::normalize(evolved_hist, evolved_hist);
-//        float bc_templ = cv::compareHist(templ_hist, evolved_hist,
-//                                         CV_COMP_BHATTACHARYYA);
-        normalize(evolved_hist);
-        float bc_templ = calcBC(templ_hist, evolved_hist);
+//        cv::rectangle(window_image, evolved_bound, WHITE);
+//        cv::rectangle(window_image, estimate_bound, GREEN);
 
         cv::Mat_<uchar> templ_roi(templ, templ_bound);
         cv::Mat_<uchar> evolved_roi(state_c_evolved.contour_mask, evolved_bound);
 
-        cv::Mat test = cv::Mat::zeros(evolved_roi.size(), evolved_roi.type());
-        test.setTo(255, evolved_roi == 1);
-        cv::imshow(WINDOW_ROI_NAME, test);
+        // check if template and template histogram can be adpated in
+        // user-defined checking interval
+        cv::Mat_<float> evolved_hist;
+        calc_hist(frame, evolved_hist, state_c_evolved.contour_mask);
+        normalize(evolved_hist);
+        float bc_templ = calcBC(templ_hist, evolved_hist);
+
+
+
+//        cv::Mat test = cv::Mat::zeros(evolved_roi.size(), evolved_roi.type());
+//        test.setTo(255, evolved_roi == 1);
+//        cv::imshow(WINDOW_ROI_NAME, test);
 
         float hu_templ_1 = match_shapes(templ_roi, evolved_roi,
                                         CV_CONTOURS_MATCH_I1);
-        float hu_templ_2 = match_shapes(templ_roi, evolved_roi,
-                                        CV_CONTOURS_MATCH_I2);
-        float hu_templ_4 = match_shapes(templ_roi, evolved_roi, 4);
-
         hu1.push_back(hu_templ_1);
-        hu2.push_back(hu_templ_2);
-        hu4.push_back(hu_templ_4);
+
+/*
+        // detect successful tracking, so template can be adapted
+        if (bc_templ < 0.1) // just try out
+        {
+            state_c_evolved.contour_mask.copyTo(templ);
+            calc_hist(frame, templ_hist, templ);
+            normalize(templ_hist);
+            frame.copyTo(templ_image);
+        }
+*/
 
 
         // TODO histogram adpation instead of replacement?
@@ -214,18 +289,16 @@ int main(int argc, char *argv[])
 */
 
 /*
-        if ((bc_templ >= 3.f || hu_templ >= .20f) ||
-            (bc_templ >= .18f && hu_templ >= .1f))
+        bool lost = bc_templ > 0.2; // detected as lost
+        if (lost)
         {
             cv::rectangle(window_image, cv::Rect(5, 5, 20, 20), RED, -1);
+            state_c_evolved.contour_mask.copyTo(templ);
+            calc_hist(frame, templ_hist, templ);
+            normalize(templ_hist);
+            cv::cvtColor(frame, templ_image, CV_GRAY2BGR);
         }
 */
-
-
-        // update state and resampling
-        pf.weighted_mean_estimate();
-        pf.resample();
-//        pf.resample_systematic();
 
 
 //        cv::imshow("Template Histogram", draw_hist(templ_hist));
@@ -236,15 +309,13 @@ int main(int argc, char *argv[])
 
         // draw template contour
         cv::cvtColor(templ_image, window_templ_image, CV_GRAY2BGR);
-//        templ_image.copyTo(window_templ_image);
         draw_contour(window_templ_image, templ, BLUE);
-        cv::rectangle(window_templ_image, templ_bound, GREEN);
+        cv::rectangle(window_templ_image, templ_bound, BLUE);
 
 
-        float hu_diff = hu_templ_2 - hu_templ_1;
         // output data
-        std::cout << boost::format("#%03d: bc-templ[%f], hu-templ-1[%f], hu-templ-2[%f], hu-templ-4[%f]")
-                     % cnt_frame % bc_templ % hu_templ_1 % hu_templ_2 % hu_templ_4;
+        std::cout << boost::format("#%03d: bc-templ[%f], hu-templ-1[%f]")
+                     % cnt_frame % bc_templ % hu_templ_1;
 
         // test occlusion
         if (cnt_frame > 125 && cnt_frame < 185) // Verdeckung
@@ -264,33 +335,55 @@ int main(int argc, char *argv[])
 
         std::cout << std::endl;
 
+        // =====================================================================
+        // = UPDATE PARTICLE FILTER                                            =
+        // =====================================================================
+
+        // update state and resampling
+        pf.weighted_mean_estimate();
+        pf.resample();
+//        pf.resample_systematic();
+
 #else
         draw_contour(frame, contour);
 #endif // PF_AC
+
+        // =====================================================================
+        // = IMAGE OUTPUT                                                      =
+        // =====================================================================
 
         cv::imshow(WINDOW_NAME, window_image);
         cv::imshow(WINDOW_TEMPALTE_NAME, window_templ_image);
         key = cv::waitKey(1);
 
+        if (save_img_seq)
+        {
+            std::stringstream s;
+            s << boost::format(save_img_path) % cnt_frame;
+            cv::imwrite(s.str(), window_image);
+        }
+
+        if (save_video)
+            videoOut << window_image;
+
         // pause on space
         if (key == ' ')
             key = cv::waitKey(0);
 
-#ifdef SAVE_VIDEO
-        videoOut << frame;
-#endif
-
         cnt_frame++;
     }
 
+#ifdef PARTICLE_FILTER
+    // =========================================================================
+    // = HU OUTPUT (MATLAB)                                                    =
+    // =========================================================================
+
     std::ofstream hu_output("C:/Users/Peter/Documents/MATLAB/humatch.m");
     hu_output << "hu1 = " << hu1 << ";" << std::endl;
-    hu_output << "hu2 = " << hu2 << ";" << std::endl;
-    hu_output << "hu4 = " << hu4 << ";" << std::endl;
     hu_output.close();
-
-#ifdef SAVE_VIDEO
-    videoOut.release();
 #endif
+
+    if (save_video)
+        videoOut.release();
     return EXIT_SUCCESS;
 }

@@ -80,7 +80,7 @@ void ParticleFilter::predict()
 }
 
 void ParticleFilter::calc_weight(cv::Mat& frame, cv::Mat_<uchar> templ,
-                                 cv::Mat_<float>& templ_hist)
+                                 cv::Mat_<float>& templ_hist, float sigma)
 {
     cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
@@ -100,7 +100,8 @@ void ParticleFilter::calc_weight(cv::Mat& frame, cv::Mat_<uchar> templ,
 //    cv::Mat frame_roi(frame, region);
 
     // TODO
-    confidence = calc_probability(frame, templ_hist, state_c.contour_mask);
+    confidence = calc_probability(frame, templ_hist, state_c.contour_mask,
+                                  sigma);
 
     // particle confidence
     float sum = 0.f;
@@ -117,7 +118,7 @@ void ParticleFilter::calc_weight(cv::Mat& frame, cv::Mat_<uchar> templ,
 //        cv::Rect region = cv::Rect(x, y, width, height) & bounds;
 //        cv::Mat frame_roi(frame, region);
 
-        w[i] = calc_probability(frame, templ_hist, pi_c.contour_mask);
+        w[i] = calc_probability(frame, templ_hist, pi_c.contour_mask, sigma);
         sum += w[i];
         w_cumulative[i] = sum; // for systematic resampling
 
@@ -188,7 +189,8 @@ void ParticleFilter::resample_systematic()
 }
 
 float ParticleFilter::calc_probability(cv::Mat &frame_roi,
-                                       cv::Mat_<float> &templ_hist, cv::Mat& mask)
+                                       cv::Mat_<float> &templ_hist,
+                                       cv::Mat& mask, float sigma)
 {
     static cv::Mat_<float> hist;
 
@@ -200,7 +202,7 @@ float ParticleFilter::calc_probability(cv::Mat &frame_roi,
 
     float prob = 0.f;
     if (bc <= 1.f) // total missmatch
-        prob = std::exp(-10.f * bc*bc);
+        prob = std::exp(-sigma * bc*bc);
 //        prob = 1 - bc;
     return prob;
 }
