@@ -600,12 +600,14 @@ void RegBasedContours::iterate()
         if (phix > .5f)
         {
             pushBack(1, true, *_lz_it, _frame.size());
-            _lz.erase(_lz_it);
+            _lz_it = _lz.erase(_lz_it);
+            _lz_it--;
         }
         else if (phix < -.5f)
         {
             pushBack(-1, true, *_lz_it, _frame.size());
-            _lz.erase(_lz_it);
+            _lz_it = _lz.erase(_lz_it);
+            _lz_it--;
         }
     }
 
@@ -622,7 +624,8 @@ void RegBasedContours::iterate()
         if (topL != 0 && rightL != 0 && bottomL != 0 && leftL != 0)
         {
             pushBack(-2, true, *_ln1_it, _frame.size());
-            _ln1.erase(_ln1_it);
+            _ln1_it = _ln1.erase(_ln1_it);
+            _ln1_it--;
         }
         else
         {
@@ -643,12 +646,14 @@ void RegBasedContours::iterate()
             if (phix >= -.5f)
             {
                 pushBack(0, true, *_ln1_it, _frame.size());
-               _ln1.erase(_ln1_it);
+               _ln1_it = _ln1.erase(_ln1_it);
+               _ln1_it--;
             }
             else if (phix < -1.5f)
             {
                 pushBack(-2, true, *_ln1_it, _frame.size());
-                _ln1.erase(_ln1_it);
+                _ln1_it = _ln1.erase(_ln1_it);
+                _ln1_it--;
             }
         }
     }
@@ -666,7 +671,8 @@ void RegBasedContours::iterate()
         if (topL != 0 && rightL != 0 && bottomL != 0 && leftL != 0)
         {
             pushBack(2, true, *_lp1_it, _frame.size());
-            _lp1.erase(_lp1_it);
+            _lp1_it = _lp1.erase(_lp1_it);
+            _lp1_it--;
         }
         else
         {
@@ -687,12 +693,14 @@ void RegBasedContours::iterate()
             if (phix <= .5f)
             {
                 pushBack(0, true, *_lp1_it, _frame.size());
-                _lp1.erase(_lp1_it);
+                _lp1_it = _lp1.erase(_lp1_it);
+                _lp1_it--;
             }
             else if (phix > 1.5f)
             {
                 pushBack(2, true, *_lp1_it, _frame.size());
-                _lp1.erase(_lp1_it);
+                _lp1_it = _lp1.erase(_lp1_it);
+                _lp1_it--;
             }
         }
     }
@@ -709,7 +717,8 @@ void RegBasedContours::iterate()
 
         if (topL != -1 && rightL != -1 && bottomL != -1 && leftL != -1)
         {
-            _ln2.erase(_ln2_it);
+            _ln2_it = _ln2.erase(_ln2_it);
+            _ln2_it--;
             _label.at<int>(y, x) = -3;
             _phi.at<float>(y, x) = -3.f;
         }
@@ -732,11 +741,13 @@ void RegBasedContours::iterate()
             if (phix >= -1.5f)
             {
                 pushBack(-1, true, *_ln2_it, _frame.size());
-                _ln2.erase(_ln2_it);
+                _ln2_it = _ln2.erase(_ln2_it);
+                _ln2_it--;
             }
             else if (phix < -2.5f)
             {
-                _ln2.erase(_ln2_it);
+                _ln2_it = _ln2.erase(_ln2_it);
+                _ln2_it--;
                 _label.at<int>(y, x) = -3;
                 _phi.at<float>(y, x) = -3.f;
             }
@@ -755,7 +766,8 @@ void RegBasedContours::iterate()
 
         if (topL != 1 && rightL != 1 && bottomL != 1 && leftL != 1)
         {
-            _lp2.erase(_lp2_it);
+            _lp2_it = _lp2.erase(_lp2_it);
+            _lp2_it--;
             _label.at<int>(y, x) = 3;
             _phi.at<float>(y, x) = 3.f;
         }
@@ -778,11 +790,13 @@ void RegBasedContours::iterate()
             if (phix <= 1.5f)
             {
                 pushBack(1, true, *_lp2_it, _frame.size());
-                _lp2.erase(_lp2_it);
+                _lp2_it = _lp2.erase(_lp2_it);
+                _lp2_it--;
             }
             else if (phix > 2.5f)
             {
-                _lp2.erase(_lp2_it);
+                _lp2_it =_lp2.erase(_lp2_it);
+                _lp2_it--;
                 _label.at<int>(y, x) = 3;
                 _phi.at<float>(y, x) = 3.f;
             }
