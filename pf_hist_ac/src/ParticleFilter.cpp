@@ -2,7 +2,6 @@
 #include "Random.h"
 #include "StateParams.h"
 #include "Contour.h"
-#include "hist.h"
 
 #include <iostream>
 
@@ -78,37 +77,27 @@ void ParticleFilter::predict()
 }
 
 void ParticleFilter::calc_weight(cv::Mat& frame, cv::Size templ_size,
-                                 cv::Mat_<float>& templ_hist, float sigma)
+                                 Histogram& templ_hist, float sigma)
 {
     cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
-    // estimated state confidence
+    // assert min scale
     float scale = std::max(.1f, state(PARAM_SCALE));
-    state(PARAM_SCALE) = scale;
-    int width = std::round(templ_size.width * scale);
-    int height = std::round(templ_size.height * scale);
-    int x = std::round(state(PARAM_X)) - width / 2;
-    int y = std::round(state(PARAM_Y)) - height / 2;
+    state(PARAM_SCALE) = scale;;
 
-    cv::Rect region = cv::Rect(x, y, width, height) & bounds;
-    cv::Mat frame_roi(frame, region);
-
+    // estimated state confidence
+    cv::Mat frame_roi(frame, state_rect(templ_size, bounds));
     confidence = calc_probability(frame_roi, templ_hist, sigma);
 
-    // particle confidence
     float sum = 0.f;
     for (int i = 0; i < num_particles; i++)
     {
+        // assert min scale
         float scale = std::max(.1f, p[i](PARAM_SCALE));
         p[i](PARAM_SCALE) = scale;
-        int width = std::round(templ_size.width * scale);
-        int height = std::round(templ_size.height * scale);
-        int x = std::round(p[i](PARAM_X)) - width / 2;
-        int y = std::round(p[i](PARAM_Y)) - height / 2;
 
-        cv::Rect region = cv::Rect(x, y, width, height) & bounds;
-        cv::Mat frame_roi(frame, region);
-
+        // particle confidence
+        cv::Mat frame_roi(frame, state_rect(templ_size, bounds, i));
         w[i] = calc_probability(frame_roi, templ_hist, sigma);
         sum += w[i];
         w_cumulative[i] = sum; // for systematic resampling
@@ -179,14 +168,34 @@ void ParticleFilter::resample_systematic()
     p = p_new;
 }
 
-float ParticleFilter::calc_probability(cv::Mat &frame_roi,
-                                       cv::Mat_<float> &templ_hist, float sigma)
+cv::Rect ParticleFilter::state_rect(cv::Size templ_size, cv::Rect bounds, int i)
 {
-    static cv::Mat_<float> hist;
+    if (i >= num_particles)
+    {
+        std::cerr << "Error calculating state rectangle: i >= num_particles ("
+                  << num_particles << ")" << std::endl;
+        return cv::Rect();
+    }
 
-    calc_hist(frame_roi, hist);
-    normalize(hist);
-    float bc = calcBC(templ_hist, hist);
+    // use state estimate or i-th particle
+    const cv::Mat_<float>& s = i < 0 ? state : p[i];
+
+    int width = std::round(templ_size.width * s(PARAM_SCALE));
+    int height = std::round(templ_size.height * s(PARAM_SCALE));
+    int x = std::round(s(PARAM_X)) - width/2;
+    int y = std::round(s(PARAM_Y)) - height/2;
+
+    return cv::Rect(x, y, width, height) & bounds;
+}
+
+float ParticleFilter::calc_probability(cv::Mat &frame_roi,
+                                       Histogram& templ_hist, float sigma)
+{
+    static Histogram hist;
+
+    hist.calc_hist(frame_roi, RGB);
+    hist.normalize();
+    float bc = templ_hist.match(hist);
 
     float prob = 0.f;
     if (bc <= 1.f) // total missmatch

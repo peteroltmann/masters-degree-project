@@ -4,6 +4,7 @@
 #include <opencv2/core/core.hpp>
 #include <memory>
 #include "Contour.h"
+#include "Histogram.h"
 
 class RegBasedContours;
 
@@ -35,7 +36,7 @@ public:
      * \brief Calculate the particle weights and the mean confidence.
      */
     void calc_weight(cv::Mat &frame, cv::Size templ_size,
-                     cv::Mat_<float>& templ_hist, float sigma);
+                     Histogram &templ_hist, float sigma);
 
     /*!
      * \brief Estimate the state.
@@ -56,8 +57,25 @@ public:
      * expected cumulative confidence for that index.
      */
     void resample_systematic();
+
+    /*!
+     * \brief Calculate rectangle of the state estimate or a particle.
+     * \param templ_size    the size the scaling is applied to
+     * \param bounds        the outer bound of the image domain
+     * \param i             the particle index or -1 for state estimate
+     * \return the state rectangle
+     */
+    cv::Rect state_rect(cv::Size templ_size, cv::Rect bounds, int i=-1);
+
 private:
-    float calc_probability(cv::Mat& frame_roi, cv::Mat_<float>& templ_hist,
+    /*!
+     * \brief Calc the probability of a frame ROI by histogram comparison.
+     * \param frame_roi     frame ROI whose hisogram should be compared.
+     * \param templ_hist    the other histogram
+     * \param sigma         deviation for probability calculation
+     * \return the probability of the fame ROI matching the template.
+     */
+    float calc_probability(cv::Mat& frame_roi, Histogram &templ_hist,
                            float sigma);
 
 public:

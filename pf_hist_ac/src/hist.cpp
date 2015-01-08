@@ -5,12 +5,27 @@
 
 void calc_hist(cv::Mat& bgr, cv::Mat& hist, cv::Mat mask)
 {
+/*
     static const int channels[] = {0};
     static const int hist_size[] = {256};
-    static const float range[] = {0, 255};
+    static const float range[] = {0, 256};
     static const float* ranges[] = {range};
 //    static const cv::Mat mask;
     static const int dims = 1;
+    cv::Mat srcs[] = {bgr};
+*/
+
+    static const int channels[] = {0, 1, 2};
+    static const int b_bins = 16;
+    static const int g_bins = 16;
+    static const int r_bins = 16;
+    static const int hist_size[] = {b_bins, g_bins, r_bins};
+    static const float branges[] = {0, 256};
+    static const float granges[] = {0, 256};
+    static const float rranges[] = {0, 256};
+    static const float* ranges[] = {branges, granges, rranges};
+//    static const cv::Mat mask;
+    static const int dims = 3;
     cv::Mat srcs[] = {bgr};
 
     calcHist(srcs, sizeof(srcs), channels, mask, hist, dims, hist_size, ranges,
