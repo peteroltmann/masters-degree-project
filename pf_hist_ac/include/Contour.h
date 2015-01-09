@@ -61,6 +61,8 @@ public:
     void set_roi(cv::Rect rect);
 
     cv::Mat_<uchar> mask; //!< Masks interior pixel (interior = 1/ != 0)
+    cv::Rect bound;       /*!< Bounding rectangle of the contour. Set with
+                               bounding_rect(). */
     cv::Mat_<uchar> roi;  /*!< Contour ROI. Recommended to be set with
                                bounding_rect(). */
 };

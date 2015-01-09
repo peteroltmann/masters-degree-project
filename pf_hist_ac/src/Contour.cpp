@@ -11,7 +11,7 @@ Contour::~Contour() {}
 
 Contour::Contour(const cv::Mat_<uchar>& mask)
 {
-    mask.copyTo(this->mask);
+    set_mask(mask);
 }
 
 void Contour::transform_affine(cv::Mat_<float>& state)
@@ -37,6 +37,7 @@ void Contour::transform_affine(cv::Mat_<float>& state)
     }
 
     mask = dst;
+    set_roi(bounding_rect());
 }
 
 void Contour::evolve(RegBasedContours& segm, cv::Mat& frame, int iterations)
@@ -58,6 +59,7 @@ void Contour::evolve(RegBasedContours& segm, cv::Mat& frame, int iterations)
     // acutalize mask
     mask.setTo(0);
     cv::drawContours(mask, contours, -1, 1, CV_FILLED); // set to 1 (as color)
+    set_roi(bounding_rect());
 }
 
 cv::Rect Contour::bounding_rect()
@@ -161,9 +163,11 @@ void Contour::draw(cv::Mat& window_image, cv::Scalar color)
 void Contour::set_mask(const cv::Mat& mask)
 {
     mask.copyTo(this->mask);
+    set_roi(bounding_rect());
 }
 
 void Contour::set_roi(cv::Rect rect)
 {
+    bound = rect;
     roi = cv::Mat(mask, rect);
 }

@@ -29,3 +29,5 @@ save_img_seq: 0                     # save image seqence, true/false (0/1)
 save_img_path: "../output/car/car%03d.png"
 # save_img_path: "../output/walking/walking%03d.png"
 # save_img_path: "../output/fish/fish%03d.png"
+
+matlab_file_path: "../matlab/matlab_out.m"  # leave empty if you wish not output

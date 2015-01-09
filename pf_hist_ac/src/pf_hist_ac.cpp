@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
     std::string output_path;
     bool save_img_seq;
     std::string save_img_path;
+    std::string matlab_file_path;
 
     cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
     fs["num_particles"] >> num_particles;
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
     fs["output_path"] >> output_path;
     fs["save_img_seq"] >> save_img_seq;
     fs["save_img_path"] >> save_img_path;
+    fs["matlab_file_path"] >> matlab_file_path;
 
     cv::FileStorage fs2(templ_path, cv::FileStorage::READ);
     if (!fs.isOpened())
@@ -98,16 +100,11 @@ int main(int argc, char *argv[])
     cv::Mat window_templ_image;
 
     // contour and histograms
-    Contour templ;
-    Contour templ_frame0;
-    fs2["templ"] >> templ.mask;
-    fs2["templ"] >> templ_frame0.mask;
+    cv::Mat_<uchar> in;
+    fs2["templ"] >> in;
+    Contour templ(in);
+    Contour templ_frame0(in);
     Histogram templ_hist;
-
-    // regions
-    cv::Rect templ_bound = templ.bounding_rect();
-    cv::Rect evolved_bound;
-    templ.set_roi(templ_bound);
 
     cv::Mat_<float> hu1; // hu values for matlab output
 
@@ -115,7 +112,7 @@ int main(int argc, char *argv[])
 
     // init particle filter
     ParticleFilter pf(num_particles);
-    pf.init(templ_bound);
+    pf.init(templ.bound);
 
     // open input image sequence or video
     cv::VideoCapture capture(input_path);
@@ -167,7 +164,7 @@ int main(int argc, char *argv[])
 
             // draw template contour
             templ.draw(window_templ_image, BLUE);
-            cv::rectangle(window_templ_image, templ_bound, BLUE);
+            cv::rectangle(window_templ_image, templ.bound, BLUE);
 
         }
 
@@ -176,7 +173,7 @@ int main(int argc, char *argv[])
         // =====================================================================
 
         pf.predict();
-        pf.calc_weight(frame, templ_bound.size(), templ_hist, sigma);
+        pf.calc_weight(frame, templ.bound.size(), templ_hist, sigma);
 
 /*
         for (int i = 0; i < pf.num_particles; i++)
@@ -189,13 +186,13 @@ int main(int argc, char *argv[])
         // draw particles
         for (int i = 0; i < pf.num_particles; i++)
         {
-            cv::Rect pi_rect = pf.state_rect(templ_bound.size(), bounds, i);
+            cv::Rect pi_rect = pf.state_rect(templ.bound.size(), bounds, i);
             cv::rectangle(window_image, pi_rect, RED, 1);
         }
 */
 
         // get predicted estimate rectangle
-        cv::Rect estimate_rect = pf.state_rect(templ_bound.size(), bounds);
+        cv::Rect estimate_rect = pf.state_rect(templ.bound.size(), bounds);
 
         // draw predicted estimate
         cv::rectangle(window_image, estimate_rect, GREEN, 1);
@@ -213,15 +210,11 @@ int main(int argc, char *argv[])
         Contour evolved(init_mask);
         evolved.evolve(segm, frame_gray, num_iterations);
         evolved.draw(window_image, WHITE);
+        cv::rectangle(window_image, evolved.bound, WHITE);
 
         // =====================================================================
         // = AFTER CONTOUR EVOLUTION                                           =
         // =====================================================================
-
-        // calculate bounding rectangle
-        evolved_bound = evolved.bounding_rect();
-        evolved.set_roi(evolved_bound);
-        cv::rectangle(window_image, evolved_bound, WHITE);
 
         // calc evolved contour histogram
         Histogram evolved_hist;
@@ -232,9 +225,9 @@ int main(int argc, char *argv[])
         float bc_templ = evolved_hist.match(templ_hist);
         float hu_templ_1 = evolved.match(templ);
 
-/* =============================================================================
-
         hu1.push_back(hu_templ_1);
+
+/* =============================================================================
 
 
         // detect successful tracking, so template can be adapted
@@ -317,9 +310,17 @@ int main(int argc, char *argv[])
     // = HU OUTPUT (MATLAB)                                                    =
     // =========================================================================
 
-    std::ofstream hu_output("C:/Users/Peter/Documents/MATLAB/humatch.m");
-    hu_output << "hu1 = " << hu1 << ";" << std::endl;
-    hu_output.close();
+    if (!matlab_file_path.empty())
+    {
+        std::ofstream m_output(matlab_file_path);
+        if (m_output.is_open())
+        {
+            m_output << "hu1 = " << hu1 << ";" << std::endl;
+            m_output.close();
+        }
+        else
+            std::cerr << "Could not open: " << matlab_file_path << std::endl;
+    }
 
     // =========================================================================
     // = VIDEO OUTPUT                                                          =
