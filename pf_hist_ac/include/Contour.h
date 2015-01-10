@@ -43,8 +43,33 @@ public:
      */
     cv::Rect bounding_rect();
 
+    /*!
+     * \brief Match the contour shape to a given other contour shape using
+     *        the Hu-Moments.
+     *
+     * Re-implementaion of the OpenCV-function <tt>matchShapes()</tt> due to a
+     * bug in version 2.4.9 that causes the function to always return zero.
+     *
+     * \param contour2  the contour to be matched with.
+     * \param method    comparison method: <tt>CV_CONTOURS_MATCH_I1</tt> ,
+     *                  <tt>CV_CONTOURS_MATCH_I2</tt> or
+     *                  <tt>CV_CONTOURS_MATCH_I3</tt>
+     *
+     * TODO:
+     * Only CV_CONTOURS_MATCH_I1 and 2 supported right now. Experimentally
+     * method "4"
+     *
+     * See details of the comparison method:
+     * http://docs.opencv.org/modules/imgproc/doc/structural_analysis_and_shape_descriptors.html#matchshapes
+     * \return
+     */
     float match(Contour& contour2, int method=CV_CONTOURS_MATCH_I1);
 
+    /*!
+     * \brief Draw the contour.
+     * \param window_image  the output image
+     * \param color         the color
+     */
     void draw(cv::Mat& window_image, cv::Scalar color);
 
     /*!
