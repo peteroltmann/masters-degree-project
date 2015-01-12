@@ -69,13 +69,13 @@ float Histogram::match(Histogram& hist2)
     if (data.type() != CV_32F && hist2.data.type() != CV_32F)
     {
         std::cout << "Histogram types != CV_32F" << std::endl;
-        return -1;
+        return EXIT_FAILURE;
     }
 
     if (data.rows != hist2.data.rows && data.cols == 1 && hist2.data.cols == 1)
     {
         std::cout << "Histogram sizes are not equal" << std::endl;
-        return -1;
+        return EXIT_FAILURE;
     }
 
     float bc = 0;
