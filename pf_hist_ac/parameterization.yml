@@ -1,6 +1,6 @@
 %YAML:1.0
 num_particles: 200                  # number of particles, default: 100
-num_iterations: 200                 # number of iterations, default: 10
+num_iterations: 250                 # number of iterations, default: 10
 sigma: 20                           # sigma for weight calculation
 
 # path to template YML file

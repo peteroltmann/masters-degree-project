@@ -7,8 +7,8 @@
 #include "RegBasedContours.h"
 #include "ParticleFilter.h"
 #include "StateParams.h"
-#include "hist.h"
 #include "Histogram.h"
+#include "FourierDescriptor.h"
 
 #define WHITE cv::Scalar(255, 255, 255)
 #define BLUE cv::Scalar(255, 0, 0)
@@ -105,8 +105,10 @@ int main(int argc, char *argv[])
     Contour templ(in);
     Contour templ_frame0(in);
     Histogram templ_hist;
+    FourierDescriptor templ_fd(templ.mask, 64);
 
     cv::Mat_<float> hu1; // hu values for matlab output
+    cv::Mat_<float> fd1; // fd values for matlab output
 
     RegBasedContours segm; // object prividing the contour evolution algorithm
 
@@ -169,6 +171,54 @@ int main(int argc, char *argv[])
         }
 
         // =====================================================================
+        // = TRYOUT                                                            =
+        // =====================================================================
+/*
+        FourierDescriptor fd(templ.mask, 64);
+
+        float a = 0.785398163;
+
+        cv::Mat Tm = (cv::Mat_<float>(3, 3) <<  1, 0,  -fd.center.x,
+                                                0, 1,  -fd.center.y,
+                                                0, 0,             1);
+
+        cv::Mat S  = (cv::Mat_<float>(3, 3) <<  1.5,   0, 0,
+                                                  0, 1.5, 0,
+                                                  0,   0, 1);
+
+        cv::Mat T  = (cv::Mat_<float>(3, 3) <<  1, 0,   fd.center.x,
+                                                0, 1,   fd.center.y,
+                                                0, 0,             1);
+
+        cv::Mat R = (cv::Mat_<float>(3, 3) <<  cos(a), -sin(a), 0,
+                                               sin(a),  cos(a), 0,
+                                                    0,      0,  1);
+
+        cv::Mat M = T*R*S*Tm;
+        M.pop_back();
+        std::cout << M << std::endl;
+
+//        cv::Mat M = (cv::Mat_<float>(2, 3) <<  1, 0, -50,
+//                                               0, 1, -50);
+
+        cv::imshow("ASD", templ.mask == 1);
+        cv::warpAffine(templ.mask, templ.mask, M, templ.mask.size());
+//        templ.mask.setTo(0);
+//        cv::rectangle(templ.mask, cv::Rect(100, 100, 100, 100), 1, -1);
+        cv::imshow("ASD2", templ.mask == 1);
+        cv::waitKey();
+
+        FourierDescriptor fd2(templ.mask, 64);
+
+        float match_fd = fd.match(fd2);
+        std::cout << match_fd << std::endl;
+
+        // TODO reconstruct with different amounts of fourier coefficients
+
+
+        return EXIT_SUCCESS; // ################################################
+*/
+        // =====================================================================
         // = PARTICLE FILTER                                                   =
         // =====================================================================
 
@@ -225,7 +275,11 @@ int main(int argc, char *argv[])
         float bc_templ = evolved_hist.match(templ_hist);
         float hu_templ_1 = evolved.match(templ);
 
+        FourierDescriptor evolved_fd(evolved.mask, 64);
+        float fd_templ = evolved_fd.match(templ_fd);
+
         hu1.push_back(hu_templ_1);
+        fd1.push_back(fd_templ);
 
 /* =============================================================================
 
@@ -278,8 +332,8 @@ int main(int argc, char *argv[])
         // =====================================================================
         // = DATA OUTPUT                                                       =
         // =====================================================================
-        std::cout << boost::format("#%03d: bc-templ[%f] hu-templ-1[%f]")
-                     % cnt_frame % bc_templ % hu_templ_1 << std::endl;
+        std::cout << boost::format("#%03d: bc-templ[%f] hu-templ-1[%f] fd-templ[%f]")
+                     % cnt_frame % bc_templ % hu_templ_1 % fd_templ << std::endl;
 
         // =====================================================================
         // = IMAGE OUTPUT                                                      =
@@ -316,6 +370,7 @@ int main(int argc, char *argv[])
         if (m_output.is_open())
         {
             m_output << "hu1 = " << hu1 << ";" << std::endl;
+            m_output << "fd1 = " << fd1 << ";" << std::endl;
             m_output.close();
         }
         else

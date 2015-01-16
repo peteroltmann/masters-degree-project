@@ -12,6 +12,13 @@ line([0 length(x)], [0.5 0.5]);
 % line([x(330) x(330)], [0, max(hu1)]);
 grid on;
 
+x = [1:length(fd1)];
+
+figure(2);
+plot(fd1, 'r');
+line([0 length(x)], [1 1]);
+grid on;
+
 % figure(2);
 % plot(hu2, 'r');
 % line([0 length(x)], [1.75 1.75]);
