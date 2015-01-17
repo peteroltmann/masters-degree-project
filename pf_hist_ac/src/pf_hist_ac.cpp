@@ -210,11 +210,31 @@ int main(int argc, char *argv[])
 
         FourierDescriptor fd2(templ.mask, 64);
 
+        // reconstruct
         float match_fd = fd.match(fd2);
         std::cout << match_fd << std::endl;
 
-        // TODO reconstruct with different amounts of fourier coefficients
+        cv::Mat_<cv::Vec2f> r = fd.reconstruct();
+        cv::Mat reconst_mask(frame.size(), CV_8U, cv::Scalar(0));
+        std::vector<std::vector<cv::Point>> c(1);
+        for (int i = 0; i < r.total(); i++)
+        {
+            c[0].push_back(cv::Point(r(i)[0], r(i)[1]));
+        }
+        cv::drawContours(reconst_mask, c, 0, 1, CV_FILLED);
+        cv::imshow("ASD", reconst_mask == 1);
 
+
+        cv::Mat_<cv::Vec2f> r2 = fd2.reconstruct();
+        cv::Mat reconst2_mask(frame.size(), CV_8U, cv::Scalar(0));
+        std::vector<std::vector<cv::Point>> c2(1);
+        for (int i = 0; i < r2.total(); i++)
+        {
+            c2[0].push_back(cv::Point(r2(i)[0], r2(i)[1]));
+        }
+        cv::drawContours(reconst2_mask, c, 0, 1, CV_FILLED);
+        cv::imshow("ASD2", reconst2_mask == 1);
+        cv::waitKey();
 
         return EXIT_SUCCESS; // ################################################
 */

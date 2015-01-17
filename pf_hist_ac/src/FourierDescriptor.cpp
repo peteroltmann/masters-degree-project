@@ -38,22 +38,38 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask, int num_samples)
 //    outline_mask.copyTo(asd);
 //    for (int i = 0, j = 0; i < cp.size(); i+=cp.size()/num_samples, j++)
 //    {
-////        std::stringstream ss;
-////        ss << j;
-////        std::cout << ss.str() << std::endl;
-////        cv::putText(asd, ss.str(), cp[i], 1, .5, 255);
 //        cv::circle(asd, cp[i], 0, 255);
 //        cv::imshow("YO2", asd);
 //        cv::waitKey();
 //    }
 
     // create complex vector
-    int num_points = cp.size();
-    int delta = num_points / num_samples;
-    for (int i = 0, j = 0; i < num_points && j < num_samples; i += delta, j++)
+    float delta = (float) cp.size() / num_samples;
+    float idx = 0;
+    for (int i = 0; i < num_samples; idx += delta, i++)
     {
-        U(j) = cv::Vec2f(cp[i].x, cp[i].y);
+        int j = std::round(idx);
+        U(i) = cv::Vec2f(cp[j].x, cp[j].y);
     }
+
+//    std::cout << "[";
+//    for (int i = 0; i < U.total(); i++)
+//    {
+//        std::string sign;
+//        float absi = std::fabs(U(i)[1]);
+//        if (absi >= 0)
+//            sign = " + ";
+//        else
+//            sign = " - ";
+
+//        std::cout << U(i)[0] << sign << absi << "i";
+
+//        if (i != U.total()-1)
+//            std::cout << ";" << std::endl;
+//        else
+//            std::cout << "]" << std::endl;
+
+//    }
 
     cv::dft(U, Fc); // apply DFT -> cartesian representation
 
@@ -68,8 +84,8 @@ float FourierDescriptor::match(const FourierDescriptor& fd2)
 {
     if (Fc.size() != fd2.Fc.size())
     {
-        std::cout << "Histogram sizes are not equal" << std::endl;
-        return EXIT_FAILURE;
+        std::cout << "Descriptor sizes are not equal" << std::endl;
+        return -1;
     }
 
     /*
@@ -81,7 +97,7 @@ float FourierDescriptor::match(const FourierDescriptor& fd2)
      *     rotation and starting point changes affect only the phase
      */
 
-    float sum = 0;
+    float result = 0;
     for (int i = 2; i < /*10*/Fc.total(); i++)
     {
         float Fn1 =     Fp(i)[0] /     Fp(1)[0];
@@ -89,11 +105,18 @@ float FourierDescriptor::match(const FourierDescriptor& fd2)
         float diff = Fn1 - Fn2;
 //        std::cout << Fn1 << " - " << Fn2 << " = " << diff << std::endl;
         if (diff > 1)
-            sum += 1;
+            result += 1;
         else
-            sum += diff*diff;
+            result += diff*diff;
     }
-    return sum;
+    return result;
+}
+
+cv::Mat_<cv::Vec2f> FourierDescriptor::reconstruct()
+{
+    cv::Mat_<cv::Vec2f> iU;
+    cv::dft(Fc, iU, cv::DFT_INVERSE | cv::DFT_SCALE);
+    return iU;
 }
 
 bool FourierDescriptor::less(cv::Point a, cv::Point b)

@@ -26,6 +26,12 @@ public:
      */
     float match(const FourierDescriptor& fd2);
 
+    /*!
+     * \brief Reconstruct the contour shape from the descriptor.
+     * \return the reconstructed contour shape.
+     */
+    cv::Mat_<cv::Vec2f> reconstruct();
+
 //private:
     int num_samples; //!< number of sample points taken from the contour
     cv::Point center; //!< center of contour
