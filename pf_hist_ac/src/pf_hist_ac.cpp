@@ -173,8 +173,12 @@ int main(int argc, char *argv[])
         // =====================================================================
         // = TRYOUT                                                            =
         // =====================================================================
-/*
+///*
         FourierDescriptor fd(templ.mask, 64);
+//        std::cout << fd.U(0) << std::endl;
+//        std::cout << fd.Fc(0) << std::endl;
+
+//        std::cout << fd.Fc << std::endl;
 
         float a = 0.785398163;
 
@@ -201,43 +205,48 @@ int main(int argc, char *argv[])
 //        cv::Mat M = (cv::Mat_<float>(2, 3) <<  1, 0, -50,
 //                                               0, 1, -50);
 
-        cv::imshow("ASD", templ.mask == 1);
+        cv::imshow("Reconstruct 1", templ.mask == 1);
+        cv::waitKey(1);
         cv::warpAffine(templ.mask, templ.mask, M, templ.mask.size());
 //        templ.mask.setTo(0);
 //        cv::rectangle(templ.mask, cv::Rect(100, 100, 100, 100), 1, -1);
-        cv::imshow("ASD2", templ.mask == 1);
+        cv::imshow("Reconstruct 2", templ.mask == 1);
         cv::waitKey();
 
         FourierDescriptor fd2(templ.mask, 64);
 
-        // reconstruct
-        float match_fd = fd.match(fd2);
-        std::cout << match_fd << std::endl;
+//        float match_fd = fd.match(fd2);
+//        std::cout << match_fd << std::endl;
 
+        // reconstruct
         cv::Mat_<cv::Vec2f> r = fd.reconstruct();
+//        std::cout << r << std::endl;
         cv::Mat reconst_mask(frame.size(), CV_8U, cv::Scalar(0));
         std::vector<std::vector<cv::Point>> c(1);
         for (int i = 0; i < r.total(); i++)
         {
             c[0].push_back(cv::Point(r(i)[0], r(i)[1]));
         }
+//        std::reverse(c[0].begin(), c[0].end());
         cv::drawContours(reconst_mask, c, 0, 1, CV_FILLED);
-        cv::imshow("ASD", reconst_mask == 1);
+        cv::imshow("Reconstruct 1", reconst_mask == 1);
 
 
         cv::Mat_<cv::Vec2f> r2 = fd2.reconstruct();
+//        std::cout << r2 << std::endl;
         cv::Mat reconst2_mask(frame.size(), CV_8U, cv::Scalar(0));
         std::vector<std::vector<cv::Point>> c2(1);
         for (int i = 0; i < r2.total(); i++)
         {
             c2[0].push_back(cv::Point(r2(i)[0], r2(i)[1]));
         }
-        cv::drawContours(reconst2_mask, c, 0, 1, CV_FILLED);
-        cv::imshow("ASD2", reconst2_mask == 1);
+//        std::reverse(c2[0].begin(), c2[0].end());
+        cv::drawContours(reconst2_mask, c2, 0, 1, CV_FILLED);
+        cv::imshow("Reconstruct 2", reconst2_mask == 1);
         cv::waitKey();
 
         return EXIT_SUCCESS; // ################################################
-*/
+//*/
         // =====================================================================
         // = PARTICLE FILTER                                                   =
         // =====================================================================

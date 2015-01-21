@@ -2,6 +2,7 @@
 #define FOURIER_DESCRIPTOR_H
 
 #include <opencv2/core/core.hpp>
+#include <complex>
 
 class FourierDescriptor
 {
@@ -33,6 +34,7 @@ public:
     cv::Mat_<cv::Vec2f> reconstruct();
 
 //private:
+    int num_points;
     int num_samples; //!< number of sample points taken from the contour
     cv::Point center; //!< center of contour
     std::vector<cv::Point> cp; //!< contour points sorted clockwise
@@ -40,6 +42,13 @@ public:
     cv::Mat_<cv::Vec2f> U;  //!< complex vector with coordinates (x_k + i * y_k)
     cv::Mat_<cv::Vec2f> Fc; //!< DFT(U) (cartesian)
     cv::Mat_<cv::Vec2f> Fp; //!< DFT(U) (polar)
+
+    std::vector<std::complex<float>> z;
+    std::vector<std::complex<float>> iz;
+    std::vector<std::complex<float>> c;
+
+    void dft(const int N, const int K);
+    void idft(const int N, const int K);
 
     /*!
      * \brief Determine wether a point A is less than a point B in clockwise

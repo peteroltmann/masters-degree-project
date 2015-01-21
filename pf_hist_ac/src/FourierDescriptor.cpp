@@ -14,7 +14,8 @@ FourierDescriptor::~FourierDescriptor() {}
 void FourierDescriptor::init(const cv::Mat_<uchar>& mask, int num_samples)
 {
     this->num_samples = num_samples;
-    U = cv::Mat_<cv::Vec2f>(num_samples, 1);
+//    U = cv::Mat_<cv::Vec2f>(num_samples, 1);
+    U.release();
 
     // calculate mass center
     cv::Moments m = cv::moments(mask, true);
@@ -29,10 +30,7 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask, int num_samples)
 
 //    sort(); // sort contour points --> cp
     cp = contours[0];
-//    std::reverse(cp.begin(), cp.end());
-//    std::sort(cp.begin(), cp.end(), [this](cv::Point a, cv::Point b) {
-//        return less(a, b);
-//    });
+    std::reverse(cp.begin(), cp.end());
 
 //    cv::Mat asd;
 //    outline_mask.copyTo(asd);
@@ -44,13 +42,103 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask, int num_samples)
 //    }
 
     // create complex vector
-    float delta = (float) cp.size() / num_samples;
-    float idx = 0;
-    for (int i = 0; i < num_samples; idx += delta, i++)
+    float arclen = cv::arcLength(cp, true);
+    float delta = arclen / num_samples;
+    std::cout << "delta: " << delta << std::endl;
+
+    int i = 0;
+    float sub_arclen = 0.f;
+    float sub_arclen_next = 0.f;
+
+    U.push_back(cv::Vec2f(cp[0].x, cp[0].y));
+
+    while(i < cp.size()-1)
     {
-        int j = std::round(idx);
-        U(i) = cv::Vec2f(cp[j].x, cp[j].y);
+        while (sub_arclen_next <= delta && i < cp.size()-1)
+        {
+            sub_arclen_next += cv::norm(cp[i+1] - cp[i]);
+//            std::cout << sub_arclen_next << std::endl;
+            if (sub_arclen_next <= delta)
+            {
+                sub_arclen = sub_arclen_next;
+                i++;
+            }
+//            std::cout << sub_arclen << std::endl;
+        }
+
+        if (i >= cp.size()-1)
+            break;
+
+        float d = delta - sub_arclen;
+        cv:Values inside the function:  [1, 2, 3, 4]:Vec2f p = cv::Vec2f(cp[i].x, cp[i].y);
+        cv::Vec2f v = cv::Vec2f(cp[i+1].x, cp[i+1].y);
+        v = v - p;
+        v = v / cv::norm(v);
+        p = p + d*v;
+
+        U.push_back(p);
+
+        sub_arclen_next = cv::norm(cv::Vec2f(cp[i+1].x, cp[i+1].y) - p);
+        std::cout << d << " - " << sub_arclen_next + d << std::endl;
+//        std::cout << sub_arclen + d << std::endl;
+//        sub_arclen_next = delta - d;
+//        sub_arclen_next = 0.f;
+        i++;
     }
+
+//    cv::Mat asd;
+//    outline_mask.copyTo(asd);
+//    for (int i = 0; i < U.total(); i++)
+//    {
+//        cv::circle(asd, cv::Point(U(i)[0], U(i)[1]), 0, 255);
+//        cv::imshow("YO2", asd);
+//        cv::waitKey();
+//    }
+
+//    for (int i = 0; i < U.total()-1; i++)
+//    {
+//        std::cout << norm(U(i+1), U(i)) << std::endl;
+//    }
+    std::cout << U.size() << std::endl;
+
+    num_points = cp.size();
+//    z = std::vector<std::complex<float>>(num_points);
+//    for (int i = 0; i < cp.size(); i++)
+//    {
+//        z[i] = std::complex<float>(cp[i].x, cp[i].y);
+//    }
+
+//    float idx = 0;
+//    z = std::vector<std::complex<float>>(num_samples);
+//    for (int i = 0; i < num_samples; idx += delta, i++)
+//    {
+//        int j = std::round(idx);
+//        z[i] = std::complex<float>(cp[j].x, cp[j].y);
+//    }
+
+//    dft(num_samples, num_samples/2);
+////    for (int k = 0; k < c.size(); k++)
+////    {
+////        std::cout << c[k] << std::endl;
+////    }
+
+//    idft(num_samples, num_samples/2);
+////    for (int i = 0; i < iz.size(); i++)
+////    {
+////        std::cout << iz[i] << std::endl;
+////    }
+
+//    cv::Mat reconst_mask(mask.size(), CV_8U, cv::Scalar(0));
+//    std::vector<std::vector<cv::Point>> cp2(1);
+//    for (int i = 0; i < iz.size(); i++)
+//    {
+//        cp2[0].push_back(cv::Point(iz[i].real(), iz[i].imag()));
+//    }
+//    std::cout << cp2[0].size() << std::endl;
+//    cv::drawContours(reconst_mask, cp2, 0, 1, 1);
+//    cv::imshow("Reconstruct K < N", reconst_mask == 1);
+//    cv::waitKey();
+
 
 //    std::cout << "[";
 //    for (int i = 0; i < U.total(); i++)
@@ -115,8 +203,44 @@ float FourierDescriptor::match(const FourierDescriptor& fd2)
 cv::Mat_<cv::Vec2f> FourierDescriptor::reconstruct()
 {
     cv::Mat_<cv::Vec2f> iU;
+//    for (int i = num_samples/2; i < num_samples; i++)
+//    {
+//        Fc(i)[0] = 0;
+//        Fc(i)[1] = 0;
+//    }
     cv::dft(Fc, iU, cv::DFT_INVERSE | cv::DFT_SCALE);
     return iU;
+}
+
+void FourierDescriptor::dft(const int N, const int K)
+{
+    c = std::vector<std::complex<float>>(K, std::complex<float>(0, 0));
+    for (int k = 0; k < K; k++)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            float re =  std::cos(2.f * CV_PI * i * k / N);
+            float im = -std::sin(2.f * CV_PI * i * k / N);
+            std::complex<float> f(re, im);
+            c[k] += z[i] * f;
+        }
+    }
+}
+
+void FourierDescriptor::idft(const int N, const int K)
+{
+    iz = std::vector<std::complex<float>>(N, std::complex<float>(0, 0));
+    for (int i = 0; i < N; i++)
+    {
+        for (int k = 0; k < K; k++)
+        {
+            float re =  std::cos((-2.f * CV_PI * i * k) / N);
+            float im = -std::sin((-2.f * CV_PI * i * k) / N);
+            std::complex<float> f(re, im);
+            iz[i] += f * c[k];
+        }
+        iz[i] *= 1.f/N;
+    }
 }
 
 bool FourierDescriptor::less(cv::Point a, cv::Point b)
