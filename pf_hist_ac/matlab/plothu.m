@@ -16,7 +16,7 @@ x = [1:length(fd1)];
 
 figure(2);
 plot(fd1, 'r');
-line([0 length(x)], [1 1]);
+line([0 length(x)], [0.05 0.05]);
 grid on;
 
 % figure(2);

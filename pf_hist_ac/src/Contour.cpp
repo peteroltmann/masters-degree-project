@@ -132,7 +132,7 @@ float Contour::match(Contour& contour2, int method)
 
             if (result == -1)
             {
-                std::cerr << "Unknown comparison methods" << std::endl;
+                std::cerr << "Unknown comparison method" << std::endl;
                 break;
             }
 

@@ -16,8 +16,12 @@
 #define RED cv::Scalar(0, 0, 255)
 
 #define WINDOW_NAME "Image"
+#define WINDOW_FRAME_NAME "Frame"
 #define WINDOW_TEMPALTE_NAME "Template"
-#define WINDOW_SEG "ROI"
+#define WINDOW_RECONSTR_NAME "Reconstructed"
+#define WINDOW_RECONSTR_TEMPL_NAME "Reconstructed Template"
+
+#define TEXT_POS cv::Point(10, 20)
 
 int main(int argc, char *argv[])
 {
@@ -29,6 +33,7 @@ int main(int argc, char *argv[])
     int num_particles;
     int num_iterations;
     float sigma;
+    int num_fourier;
     std::string templ_path;
     bool cvt_color;
     std::string input_path;
@@ -43,6 +48,7 @@ int main(int argc, char *argv[])
     fs["num_particles"] >> num_particles;
     fs["num_iterations"] >> num_iterations;
     fs["sigma"] >> sigma;
+    fs["num_fourier"] >> num_fourier;
     fs["templ_path"] >> templ_path;
     fs["cvt_color"] >> cvt_color;
     fs["input_path"] >> input_path;
@@ -81,6 +87,12 @@ int main(int argc, char *argv[])
                   << std::endl;
         sigma = 20.f;
     }
+    if (num_fourier < 1)
+    {
+        std::cout << "invalid value for 'num_fourier', '10' used instead"
+                  << std::endl;
+        num_fourier = 10;
+    }
 
     // =========================================================================
     // = DECLARATION AND INITIALIZATION                                        =
@@ -89,28 +101,27 @@ int main(int argc, char *argv[])
     // windows
     int key = 0;
     cv::namedWindow(WINDOW_NAME);
-    cv::namedWindow(WINDOW_TEMPALTE_NAME);
-//    cv::namedWindow(WINDOW_SEG, CV_WINDOW_NORMAL);
 
     // images
-    cv::Mat frame;
-    cv::Mat frame_gray;
-    cv::Mat templ_image;
-    cv::Mat window_image;
-    cv::Mat window_templ_image;
+    cv::Mat frame; // current frame
+    cv::Mat frame_gray; // current frame (grayscale)
+    cv::Mat templ_image; // image of the template
+    cv::Mat window_frame; // current frame for drawing output
+    cv::Mat window_templ; // current template frame for drawing output
 
-    // contour and histograms
+    // template contour, histogram and fourier descriptor
     cv::Mat_<uchar> in;
     fs2["templ"] >> in;
     Contour templ(in);
     Contour templ_frame0(in);
     Histogram templ_hist;
-    FourierDescriptor templ_fd(templ.mask, 64);
+    FourierDescriptor templ_fd(templ.mask);
+    templ_fd.low_pass(num_fourier);
 
     cv::Mat_<float> hu1; // hu values for matlab output
     cv::Mat_<float> fd1; // fd values for matlab output
 
-    RegBasedContours segm; // object prividing the contour evolution algorithm
+    RegBasedContours segm; // object providing the contour evolution algorithm
 
     // init particle filter
     ParticleFilter pf(num_particles);
@@ -142,6 +153,10 @@ int main(int argc, char *argv[])
         }
     }
 
+    // =========================================================================
+    // = MAIN LOOP                                                             =
+    // =========================================================================
+
     int cnt_frame = 0;
     while (key != 'q')
     {
@@ -150,35 +165,27 @@ int main(int argc, char *argv[])
             break;
 
         cv::cvtColor(frame, frame_gray, CV_RGB2GRAY);
-        frame.copyTo(window_image);
+        frame.copyTo(window_frame);
 
-        cv::Rect bounds(0, 0, frame.cols, frame.rows);
+        cv::Rect bounds(0, 0, frame.cols, frame.rows); // outer frame bounds
 
         // calc template histogram on first frame
         if (templ_hist.empty())
         {
             // calc template histogram
-            templ_hist.calc_hist(frame, RGB, templ.mask);
+            cv::Mat frame_roi(frame, templ.bound);
+            templ_hist.calc_hist(frame_roi, RGB, templ.roi);
 
             // save frame as template image
             frame.copyTo(templ_image);
-            frame.copyTo(window_templ_image);
-
-            // draw template contour
-            templ.draw(window_templ_image, BLUE);
-            cv::rectangle(window_templ_image, templ.bound, BLUE);
-
+            frame.copyTo(window_templ);
         }
 
         // =====================================================================
         // = TRYOUT                                                            =
         // =====================================================================
-///*
-        FourierDescriptor fd(templ.mask, 64);
-//        std::cout << fd.U(0) << std::endl;
-//        std::cout << fd.Fc(0) << std::endl;
-
-//        std::cout << fd.Fc << std::endl;
+/*
+        FourierDescriptor fd(templ.mask);
 
         float a = 0.785398163;
 
@@ -200,7 +207,7 @@ int main(int argc, char *argv[])
 
         cv::Mat M = T*R*S*Tm;
         M.pop_back();
-        std::cout << M << std::endl;
+        std::cout << "M" << M << std::endl;
 
 //        cv::Mat M = (cv::Mat_<float>(2, 3) <<  1, 0, -50,
 //                                               0, 1, -50);
@@ -213,40 +220,23 @@ int main(int argc, char *argv[])
         cv::imshow("Reconstruct 2", templ.mask == 1);
         cv::waitKey();
 
-        FourierDescriptor fd2(templ.mask, 64);
+        FourierDescriptor fd2(templ.mask);
+        fd.low_pass(num_fourier);
+        fd2.low_pass(num_fourier);
 
-//        float match_fd = fd.match(fd2);
-//        std::cout << match_fd << std::endl;
+        float match_fd = fd.match(fd2);
+        std::cout << "match_fd: " << match_fd << std::endl;
 
         // reconstruct
-        cv::Mat_<cv::Vec2f> r = fd.reconstruct();
-//        std::cout << r << std::endl;
-        cv::Mat reconst_mask(frame.size(), CV_8U, cv::Scalar(0));
-        std::vector<std::vector<cv::Point>> c(1);
-        for (int i = 0; i < r.total(); i++)
-        {
-            c[0].push_back(cv::Point(r(i)[0], r(i)[1]));
-        }
-//        std::reverse(c[0].begin(), c[0].end());
-        cv::drawContours(reconst_mask, c, 0, 1, CV_FILLED);
+        cv::Mat reconst_mask = fd.reconstruct();
         cv::imshow("Reconstruct 1", reconst_mask == 1);
 
-
-        cv::Mat_<cv::Vec2f> r2 = fd2.reconstruct();
-//        std::cout << r2 << std::endl;
-        cv::Mat reconst2_mask(frame.size(), CV_8U, cv::Scalar(0));
-        std::vector<std::vector<cv::Point>> c2(1);
-        for (int i = 0; i < r2.total(); i++)
-        {
-            c2[0].push_back(cv::Point(r2(i)[0], r2(i)[1]));
-        }
-//        std::reverse(c2[0].begin(), c2[0].end());
-        cv::drawContours(reconst2_mask, c2, 0, 1, CV_FILLED);
+        cv::Mat reconst2_mask = fd2.reconstruct();
         cv::imshow("Reconstruct 2", reconst2_mask == 1);
         cv::waitKey();
 
         return EXIT_SUCCESS; // ################################################
-//*/
+*/
         // =====================================================================
         // = PARTICLE FILTER                                                   =
         // =====================================================================
@@ -273,9 +263,6 @@ int main(int argc, char *argv[])
         // get predicted estimate rectangle
         cv::Rect estimate_rect = pf.state_rect(templ.bound.size(), bounds);
 
-        // draw predicted estimate
-        cv::rectangle(window_image, estimate_rect, GREEN, 1);
-
         // =====================================================================
         // = CONTOUR EVOLUTION
         // =====================================================================
@@ -288,8 +275,6 @@ int main(int argc, char *argv[])
         // evolve contour
         Contour evolved(init_mask);
         evolved.evolve(segm, frame_gray, num_iterations);
-        evolved.draw(window_image, WHITE);
-        cv::rectangle(window_image, evolved.bound, WHITE);
 
         // =====================================================================
         // = AFTER CONTOUR EVOLUTION                                           =
@@ -297,18 +282,24 @@ int main(int argc, char *argv[])
 
         // calc evolved contour histogram
         Histogram evolved_hist;
-        evolved_hist.calc_hist(frame, RGB, evolved.mask);
+        cv::Mat frame_roi(frame, evolved.bound);
+        evolved_hist.calc_hist(frame_roi, RGB, evolved.roi);
 
-        // check if template and template histogram can be adpated in
-        // TODO: user-defined checking interval
+        // create evolved contour fourier descriptor
+        FourierDescriptor evolved_fd(evolved.mask);
+        evolved_fd.low_pass(num_fourier);
+
+        // calculate matching values between evolved contour and template
         float bc_templ = evolved_hist.match(templ_hist);
         float hu_templ_1 = evolved.match(templ);
-
-        FourierDescriptor evolved_fd(evolved.mask, 64);
         float fd_templ = evolved_fd.match(templ_fd);
 
         hu1.push_back(hu_templ_1);
         fd1.push_back(fd_templ);
+
+        // TODO:
+        // check if template and template histogram can be adpated in
+        // user-defined checking interval
 
 /* =============================================================================
 
@@ -368,23 +359,59 @@ int main(int argc, char *argv[])
         // = IMAGE OUTPUT                                                      =
         // =====================================================================
 
-        cv::imshow(WINDOW_NAME, window_image);
-        cv::imshow(WINDOW_TEMPALTE_NAME, window_templ_image);
+        // draw predicted estimate
+        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
+
+        // draw contours
+        templ.draw(window_templ, BLUE);
+        evolved.draw(window_frame, WHITE);
+//        cv::rectangle(window_templ_image, templ.bound, BLUE);
+//        cv::rectangle(window_image, evolved.bound, WHITE);
+
+        // vieo output
+        cv::Mat video_frame;
+        window_frame.copyTo(video_frame);
+
+        // put text
+        int font = CV_FONT_HERSHEY_SIMPLEX;
+
+        // reconstructed images - bottom
+        cv::Mat er = evolved_fd.reconstruct() == 1;
+        cv::Mat tr = templ_fd.reconstruct() == 1;
+        cv::putText(er, WINDOW_RECONSTR_NAME, TEXT_POS, font, .4, WHITE);
+        cv::putText(tr, WINDOW_RECONSTR_TEMPL_NAME, TEXT_POS, font, .4, WHITE);
+
+        // frame (particle filter, evolved) - template
+        cv::putText(window_frame, WINDOW_FRAME_NAME, TEXT_POS, font, .4, WHITE);
+        cv::putText(window_templ, WINDOW_TEMPALTE_NAME, TEXT_POS, font, .4, WHITE);
+
+        // concatenate
+        cv::Mat bottom, top;
+        cv::hconcat(er, tr, bottom);
+        cv::cvtColor(bottom, bottom, CV_GRAY2RGB);
+        cv::hconcat(window_frame, window_templ, top);
+        cv::vconcat(top, bottom, top);
+
+        cv::imshow(WINDOW_NAME, top);
         key = cv::waitKey(1);
 
         if (save_img_seq)
         {
             std::stringstream s;
             s << boost::format(save_img_path) % cnt_frame;
-            cv::imwrite(s.str(), window_image);
+            cv::imwrite(s.str(), window_frame);
         }
 
         if (save_video)
-            videoOut << window_image;
+            videoOut << video_frame;
 
         // pause on space
         if (key == ' ')
+        {
             key = cv::waitKey(0);
+            while (key != ' ' && key != 'q')
+                key = cv::waitKey(0);
+        }
 
         cnt_frame++;
     }
@@ -421,9 +448,7 @@ int main(int argc, char *argv[])
            << name + ".mp4";
 
         if (system(ss.str().c_str()) == -1)
-        {
             std::cerr << "Error calling " << ss.str() << std::endl;
-        }
         else
         {   // remove opencv created file
             ss.str("");

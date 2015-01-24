@@ -12,7 +12,7 @@ public:
      * \brief Construct fourier descriptor from a given contour mask.
      * \param mask  masks interior pixel (interior = 1/ != 0)
      */
-    FourierDescriptor(const cv::Mat_<uchar>& mask, int num_samples=128);
+    FourierDescriptor(const cv::Mat_<uchar>& mask);
 
     virtual ~FourierDescriptor(); //!< The default destructor.
 
@@ -20,10 +20,16 @@ public:
      * \brief init  Initialize fourier descriptor from a given contour mask.
      * \param mask  masks interior pixel (interior = 1/ != 0)
      */
-    void init(const cv::Mat_<uchar>& mask, int num_samples);
+    void init(const cv::Mat_<uchar>& mask);
 
     /*!
-     * \brief Normalize to obtain invariance.
+     * \brief Match with another fourier descriptor.
+     *
+     * Uses normalization to obtain invariance against translation, scale and
+     * rotation.
+     *
+     * \param fd2   the other fourier descriptor
+     * \return
      */
     float match(const FourierDescriptor& fd2);
 
@@ -31,35 +37,25 @@ public:
      * \brief Reconstruct the contour shape from the descriptor.
      * \return the reconstructed contour shape.
      */
-    cv::Mat_<cv::Vec2f> reconstruct();
+    cv::Mat_<uchar> reconstruct();
+
+    /*!
+     * \brief Filter low frequencies.
+     *
+     * This is done by setting the high frequencies to zero.
+     *
+     * \param num_fourier   keep the <tt>2*num_fourier</tt> lowest frequencies.
+     */
+    void low_pass(int num_fourier);
 
 //private:
-    int num_points;
-    int num_samples; //!< number of sample points taken from the contour
+    cv::Size mask_size; //!< the size of the contour mask for reconstruction
     cv::Point center; //!< center of contour
+    int num_points; //!< number of contour points
     std::vector<cv::Point> cp; //!< contour points sorted clockwise
-    cv::Mat_<uchar> outline_mask; //!< Outline mask of the contour.
     cv::Mat_<cv::Vec2f> U;  //!< complex vector with coordinates (x_k + i * y_k)
     cv::Mat_<cv::Vec2f> Fc; //!< DFT(U) (cartesian)
     cv::Mat_<cv::Vec2f> Fp; //!< DFT(U) (polar)
-
-    std::vector<std::complex<float>> z;
-    std::vector<std::complex<float>> iz;
-    std::vector<std::complex<float>> c;
-
-    void dft(const int N, const int K);
-    void idft(const int N, const int K);
-
-    /*!
-     * \brief Determine wether a point A is less than a point B in clockwise
-     *        order.
-     * \param a the point A
-     * \param b the point B
-     * \return wether point A is less than point B in clockwise order.
-     */
-    bool less(cv::Point a, cv::Point b);
-
-    void sort(); //!< Sort contour points clockwise.
 };
 
 #endif // FOURIER_DESCRIPTOR_H
