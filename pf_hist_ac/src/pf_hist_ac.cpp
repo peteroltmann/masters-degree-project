@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
 */
 
         // check for occlusion
-        if (fd_templ >= fd_threshold) // 0.01: fish, 0.05: plane
+        if (fd_templ >= fd_threshold)
         {
             // reset occlusion counters
             last_occluded = num_free_frames;

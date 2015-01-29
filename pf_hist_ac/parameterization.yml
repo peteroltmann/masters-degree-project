@@ -2,8 +2,9 @@
 num_particles: 200                  # number of particles, default: 100
 num_iterations: 250                 # number of iterations, default: 10
 sigma: 20                           # sigma for weight calculation
-num_fourier:  10                    # number of fourier frequencies for filtering
+num_fourier:   7                    # number of fourier frequencies for filtering
 fd_threshold: 0.01                  # fourier descriptor matching threshold
+                                    # 0.01: fish, 0.05: plane
 num_free_frames: 20                 # number of frames to be free (not occluded)
                                     # for template replacement
 
