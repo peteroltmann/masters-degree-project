@@ -25,6 +25,7 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask)
     cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
     inOut.setTo(0);
 
+    // TODO: multipe contours: failure? how to match?
     // take contour with most points
     if (contours.size() == 1)
         cp = contours[0];
@@ -183,9 +184,6 @@ void FourierDescriptor::low_pass(int num_fourier)
                   << num_fourier << ")" << std::endl;
         return;
     }
-
-    // TODO
-    // check num_zero even/uneven behavior
 
     // set high frequencies to zero according to num_fourier
     int num_zero = num_points - 2*num_fourier;

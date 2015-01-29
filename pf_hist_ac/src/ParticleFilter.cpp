@@ -168,6 +168,26 @@ void ParticleFilter::resample_systematic()
     p = p_new;
 }
 
+void ParticleFilter::redistribute(cv::Size frame_size)
+{
+    static const float lower_bound[NUM_PARAMS] = {0, 0, -.5, -.5, 1.f};
+    static const float upper_bound[NUM_PARAMS] = {(float) frame_size.width,
+                                                  (float) frame_size.height,
+                                                  .5, .5, 2.0};
+
+    state = (cv::Mat_<float>(NUM_PARAMS, 1) << frame_size.width/2.f,
+                                               frame_size.height/2.f,
+                                               0.f, 0.f, 1.f);
+
+    for (int i = 0; i < num_particles; i++)
+    {
+        for (int j = 0; j < NUM_PARAMS; j++)
+            p[i](j) = Random::getRNG().uniform(lower_bound[j], upper_bound[j]);
+
+        confidence = 1.f / num_particles;
+    }
+}
+
 cv::Rect ParticleFilter::state_rect(cv::Size templ_size, cv::Rect bounds, int i)
 {
     if (i >= num_particles)
@@ -202,3 +222,4 @@ float ParticleFilter::calc_probability(cv::Mat &frame_roi,
         prob = std::exp(-sigma * bc*bc);
     return prob;
 }
+

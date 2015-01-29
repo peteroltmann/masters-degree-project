@@ -16,6 +16,10 @@ Contour::Contour(const cv::Mat_<uchar>& mask)
 
 void Contour::transform_affine(cv::Mat_<float>& state)
 {
+    // calculate mass center
+    cv::Moments m = cv::moments(mask, true);
+    cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
+
     // translate each point on the contour mask
     cv::Mat_<uchar> dst(mask.size(), 0);
     for (int y = 0; y < mask.rows; y++)
@@ -25,8 +29,8 @@ void Contour::transform_affine(cv::Mat_<float>& state)
         {
             if (cm[x] == 1)
             {
-                int xn = x + state(PARAM_X);
-                int yn = y + state(PARAM_Y);
+                int xn = x + std::round(state(PARAM_X) - center.x);
+                int yn = y + std::round(state(PARAM_Y) - center.y);
                 if (yn >= 0 && yn < mask.rows &&
                     xn >= 0 && xn < mask.cols)
                 {
@@ -136,7 +140,8 @@ float Contour::match(Contour& contour2, int method)
                 break;
             }
 
-            result += fabs(ama - amb);
+//            result += fabs(ama - amb); // TODO: abs? log?
+            result += (ama - amb)*(ama - amb);
         }
     }
 
@@ -170,4 +175,9 @@ void Contour::set_roi(cv::Rect rect)
 {
     bound = rect;
     roi = cv::Mat(mask, rect);
+}
+
+bool Contour::empty()
+{
+    return mask.empty();
 }

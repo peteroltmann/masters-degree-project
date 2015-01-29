@@ -34,8 +34,10 @@ int main(int argc, char *argv[])
     int num_iterations;
     float sigma;
     int num_fourier;
+    float fd_threshold;
+    int num_free_frames;
     std::string templ_path;
-    bool cvt_color;
+    bool cvt_color; // TODO
     std::string input_path;
     bool save_video;
     double fps;
@@ -49,6 +51,8 @@ int main(int argc, char *argv[])
     fs["num_iterations"] >> num_iterations;
     fs["sigma"] >> sigma;
     fs["num_fourier"] >> num_fourier;
+    fs["fd_threshold"] >> fd_threshold;
+    fs["num_free_frames"] >> num_free_frames;
     fs["templ_path"] >> templ_path;
     fs["cvt_color"] >> cvt_color;
     fs["input_path"] >> input_path;
@@ -57,7 +61,7 @@ int main(int argc, char *argv[])
     fs["output_path"] >> output_path;
     fs["save_img_seq"] >> save_img_seq;
     fs["save_img_path"] >> save_img_path;
-    fs["matlab_file_path"] >> matlab_file_path;
+    fs["matlab_file_path"]  >> matlab_file_path;
 
     cv::FileStorage fs2(templ_path, cv::FileStorage::READ);
     if (!fs.isOpened())
@@ -94,6 +98,19 @@ int main(int argc, char *argv[])
         num_fourier = 10;
     }
 
+    if (fd_threshold <= 0.f)
+    {
+        std::cout << "invalid value for 'fd_threshold', '0.01' used instead"
+                  << std::endl;
+        fd_threshold = .01f;
+    }
+    if (num_free_frames <= 0)
+    {
+        std::cout << "invalid value for 'num_free_frames', '10' used instead"
+                  << std::endl;
+        num_free_frames = 10;
+    }
+
     // =========================================================================
     // = DECLARATION AND INITIALIZATION                                        =
     // =========================================================================
@@ -120,6 +137,11 @@ int main(int argc, char *argv[])
 
     cv::Mat_<float> hu1; // hu values for matlab output
     cv::Mat_<float> fd1; // fd values for matlab output
+
+    Contour templ_next;
+    cv::Mat templ_image_next;
+    int next_free = 0;
+    int last_occluded = num_free_frames;
 
     RegBasedContours segm; // object providing the contour evolution algorithm
 
@@ -178,8 +200,9 @@ int main(int argc, char *argv[])
 
             // save frame as template image
             frame.copyTo(templ_image);
-            frame.copyTo(window_templ);
         }
+
+        templ_image.copyTo(window_templ);
 
         // =====================================================================
         // = TRYOUT                                                            =
@@ -242,21 +265,29 @@ int main(int argc, char *argv[])
         // =====================================================================
 
         pf.predict();
+
+        // check if target is lost (out of bounds)
+        if (!bounds.contains(cv::Point(std::round(pf.state(PARAM_X)),
+                                       std::round(pf.state(PARAM_Y)))))
+        {
+            pf.redistribute(frame.size());
+            continue;
+        }
+
         pf.calc_weight(frame, templ.bound.size(), templ_hist, sigma);
 
-/*
+/*        // print weights
         for (int i = 0; i < pf.num_particles; i++)
         {
             std::cout << pf.w[i] << std::endl;
         }
 */
 
-/*
-        // draw particles
+/*        // draw particles
         for (int i = 0; i < pf.num_particles; i++)
         {
             cv::Rect pi_rect = pf.state_rect(templ.bound.size(), bounds, i);
-            cv::rectangle(window_image, pi_rect, RED, 1);
+            cv::rectangle(window_frame, pi_rect, RED, 1);
         }
 */
 
@@ -291,54 +322,107 @@ int main(int argc, char *argv[])
 
         // calculate matching values between evolved contour and template
         float bc_templ = evolved_hist.match(templ_hist);
-        float hu_templ_1 = evolved.match(templ);
+        float hu_templ = evolved.match(templ);
         float fd_templ = evolved_fd.match(templ_fd);
 
-        hu1.push_back(hu_templ_1);
+        hu1.push_back(hu_templ);
         fd1.push_back(fd_templ);
 
-        // TODO:
-        // check if template and template histogram can be adpated in
-        // user-defined checking interval
+        // replacement contour if object is lost after evolution or occluded
+        Contour evolved_repl;
 
-/* =============================================================================
+        // =====================================================================
+        // = HISTOGRAMM ADPATION HANDLING                                      =
+        // =====================================================================
 
+/*
+        if (bc_templ < bc_threshold)
+        {
+            // object contour found
+            // occlusion or deformation possible (but not considerable)
+            // adapt histogram
+        }
+        else // if (bc_templ > bc_threshold_repl)
+        {
+            // lost object after evolution
+            // use evolved_repl
+        }
+*/
 
-        // detect successful tracking, so template can be adapted
-//        if (bc_templ < 0.1) // just try out
-//        {
-//            evolved.contour_mask.copyTo(templ);
-//            calc_hist(frame, templ_hist, templ);
-//            normalize(templ_hist);
-//            frame.copyTo(templ_image);
-//        }
+//        if (bc_templ >= 0.4)
 
+        // =====================================================================
+        // = OCCLUSION HANDLING                                                =
+        // =====================================================================
 
-        // TODO histogram adpation instead of replacement?
-        //      consider more frames that keep this status
+/*
+        if (fd_templ < fd_threshold)
+        {
+            // apdapt (replace) template
+            // either: check last x frames
+            // or: add as additional template (from now: match all templates)
+        }
+        else // if (fd_templ > fd_threshold_repl)
+        {
+            // occluded or deformed
+            // check occlusion: characteristic views
+            // use evolved_repl
+        }
+*/
 
-//        if ((cnt_frame % 19 == 0 && cnt_frame != 0) &&
-//            (hu_templ < .15f && bc_templ < .35f))
-//        {
-//            evolved.contour_mask.copyTo(templ);
-//            calc_hist(frame, templ_hist, templ);
-////            cv::normalize(templ_hist, templ_hist);
-//            normalize(templ_hist);
-////            frame.copyTo(templ_image);
-//            cv::cvtColor(frame, templ_image, CV_GRAY2RGB);
-//        }
+        // check for occlusion
+        if (fd_templ >= fd_threshold) // 0.01: fish, 0.05: plane
+        {
+            // reset occlusion counters
+            last_occluded = num_free_frames;
+            next_free = 0;
 
-//        bool lost = bc_templ > 0.2; // detected as lost
-//        if (lost)
-//        {
-//            cv::rectangle(window_image, cv::Rect(5, 5, 20, 20), RED, -1);
-//            evolved.contour_mask.copyTo(templ);
-//            calc_hist(frame, templ_hist, templ);
-//            normalize(templ_hist);
-//            cv::cvtColor(frame, templ_image, CV_GRAY2RGB);
-//        }
+            // set (reconstructed) template as replacement contour
+//            evolved.set_mask(templ.mask);
+            evolved_repl.set_mask(templ_fd.reconstruct());
+            evolved_repl.transform_affine(pf.state);
+        }
+        else // not occluded
+            last_occluded <= 0 ? 0 : last_occluded--;
 
-============================================================================= */
+        // handle template replacement
+        if (!last_occluded)
+        {
+            // last x frames: free
+            if (next_free == 0)
+            {
+                // template good enough for replacement
+                if (fd_templ < fd_threshold/2.f)
+                {
+                    // set possible next template
+                    templ_next.set_mask(evolved.mask);
+                    frame.copyTo(templ_image_next);
+                    next_free++;
+                }
+                else
+                    next_free = 0; // try next (if still not occluded)
+            }
+            // next x frames: free
+            else if (next_free == num_free_frames-1)
+            {
+                // replace template
+                templ.set_mask(templ_next.mask);
+                templ_fd.init(templ_next.mask);
+                templ_fd.low_pass(num_fourier);
+
+                // calc template histogram
+//                cv::Mat frame_roi(templ_image_next, templ.bound);
+//                templ_hist.calc_hist(frame_roi, RGB, templ.roi);
+
+                // save frame as template image
+                templ_image_next.copyTo(templ_image);
+                templ_image_next.copyTo(window_templ);
+
+                next_free = 0; // reset not occluded (next) counter
+            }
+            else
+                next_free++;
+        }
 
         // =====================================================================
         // = UPDATE PARTICLE FILTER                                            =
@@ -352,8 +436,12 @@ int main(int argc, char *argv[])
         // =====================================================================
         // = DATA OUTPUT                                                       =
         // =====================================================================
-        std::cout << boost::format("#%03d: bc-templ[%f] hu-templ-1[%f] fd-templ[%f]")
-                     % cnt_frame % bc_templ % hu_templ_1 % fd_templ << std::endl;
+
+        std::cout << boost::format("#%03d: bc-templ[ %f ] hu-templ[ %f ] "
+                                   "fd-templ[ %f ] last-occluded[ %d ] "
+                                   "next-free[ %d ]")
+                     % cnt_frame % bc_templ % hu_templ % fd_templ
+                     % last_occluded % next_free << std::endl;
 
         // =====================================================================
         // = IMAGE OUTPUT                                                      =
@@ -365,8 +453,11 @@ int main(int argc, char *argv[])
         // draw contours
         templ.draw(window_templ, BLUE);
         evolved.draw(window_frame, WHITE);
-//        cv::rectangle(window_templ_image, templ.bound, BLUE);
-//        cv::rectangle(window_image, evolved.bound, WHITE);
+//        cv::rectangle(window_templ, templ.bound, BLUE);
+//        cv::rectangle(window_frame, evolved.bound, WHITE);
+
+        if (!evolved_repl.empty())
+            evolved_repl.draw(window_frame, BLUE);
 
         // vieo output
         cv::Mat video_frame;

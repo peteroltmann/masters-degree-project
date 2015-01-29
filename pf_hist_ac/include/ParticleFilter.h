@@ -58,6 +58,8 @@ public:
      */
     void resample_systematic();
 
+    void redistribute(cv::Size frame_size);
+
     /*!
      * \brief Calculate rectangle of the state estimate or a particle.
      * \param templ_size    the size the scaling is applied to

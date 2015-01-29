@@ -85,6 +85,9 @@ public:
      */
     void set_roi(cv::Rect rect);
 
+    //! Return weather the contour mask ist empty or not.
+    bool empty();
+
     cv::Mat_<uchar> mask; //!< Masks interior pixel (interior = 1/ != 0)
     cv::Rect bound;       /*!< Bounding rectangle of the contour. Set with
                                bounding_rect(). */
