@@ -1,5 +1,4 @@
-#include "RegBasedContoursC3.h"
-#include "Contour.h"
+#include "RegBasedContours.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -34,7 +33,8 @@ int main(int argc, char** argv)
     // check parameters
     Mat frame;
     frame = imread(imagePath, CV_LOAD_IMAGE_COLOR);
-    cv::cvtColor(frame, frame, CV_RGB2HSV);
+//    cv::cvtColor(frame, frame, CV_RGB2HSV);
+    cv::cvtColor(frame, frame, CV_RGB2GRAY);
     if (frame.empty())
     {
         std::cerr << "Error loading image: '" << imagePath << "'" << std::endl;
@@ -84,16 +84,15 @@ int main(int argc, char** argv)
 
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
 
-    RegBasedContoursC3 segm;
-    Contour contour(mask);
+    RegBasedContours segm;
 
 #ifdef TIME_MEASUREMENT_TOTAL
     int64 t1, t2;
     t1 = cv::getTickCount();
 #endif
 
-    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha, a);
-    contour.evolve(segm, frame, iterations);
+    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha);
+//    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha, a);
 
 #ifdef TIME_MEASUREMENT_TOTAL
     t2 = cv::getTickCount();
@@ -115,11 +114,9 @@ int main(int argc, char** argv)
     cv::waitKey();
 
     // show segmentation image
-//    Mat seg = Mat::zeros(frame.size(), CV_8U);
-//    seg.setTo(255, segm._phi <= 0);
-//    imshow(WINDOW_NAME, seg);
-    imshow(WINDOW_NAME, contour.mask == 1);
-
+    Mat seg = Mat::zeros(frame.size(), CV_8U);
+    seg.setTo(255, segm._phi <= 0);
+    imshow(WINDOW_NAME, seg);
 
     std::cout << "Done. Press key to quit." << std::endl;
     waitKey(0);
