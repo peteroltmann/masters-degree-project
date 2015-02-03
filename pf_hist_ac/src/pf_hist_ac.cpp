@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
     int num_fourier;
     float fd_threshold;
     int num_free_frames;
+    std::vector<std::string> char_views;
     std::string templ_path;
     bool cvt_color; // TODO
     std::string input_path;
@@ -46,6 +47,7 @@ int main(int argc, char *argv[])
     std::string save_img_path;
     std::string matlab_file_path;
 
+
     cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
     fs["num_particles"] >> num_particles;
     fs["num_iterations"] >> num_iterations;
@@ -53,6 +55,7 @@ int main(int argc, char *argv[])
     fs["num_fourier"] >> num_fourier;
     fs["fd_threshold"] >> fd_threshold;
     fs["num_free_frames"] >> num_free_frames;
+    fs["char_views"] >> char_views;
     fs["templ_path"] >> templ_path;
     fs["cvt_color"] >> cvt_color;
     fs["input_path"] >> input_path;
@@ -111,6 +114,11 @@ int main(int argc, char *argv[])
         num_free_frames = 10;
     }
 
+    if (char_views.empty())
+    {
+        // TODO
+    }
+
     // =========================================================================
     // = DECLARATION AND INITIALIZATION                                        =
     // =========================================================================
@@ -142,6 +150,19 @@ int main(int argc, char *argv[])
     cv::Mat templ_image_next;
     int next_free = 0;
     int last_occluded = num_free_frames;
+
+    // init characteristic views
+    int last_match_idx = 0;
+    std::vector<FourierDescriptor> char_views_fd(char_views.size() + 1);
+    char_views_fd[0].init(templ.mask);
+    char_views_fd[0].low_pass(num_fourier);
+    for (int i = 0; i < char_views.size(); i++)
+    {
+        in = cv::imread(char_views[i], 0);
+        in.setTo(1, in);
+        char_views_fd[i+1].init(in);
+        char_views_fd[i+1].low_pass(num_fourier);
+    }
 
     RegBasedContours segm; // object providing the contour evolution algorithm
 
@@ -325,6 +346,11 @@ int main(int argc, char *argv[])
         float hu_templ = evolved.match(templ);
         float fd_templ = evolved_fd.match(templ_fd);
 
+        // matchin char_views
+        std::vector<float> fd_char_views(char_views_fd.size());
+        for (int i = 0; i < char_views_fd.size(); i++)
+            fd_char_views[i] = evolved_fd.match(char_views_fd[i]);
+
         hu1.push_back(hu_templ);
         fd1.push_back(fd_templ);
 
@@ -370,6 +396,37 @@ int main(int argc, char *argv[])
         }
 */
 
+        // estimate best matching view
+        int match_idx = -1;
+        float match_min = fd_threshold;
+        for (int i = 0; i < fd_char_views.size(); i++)
+        {
+            if (fd_char_views[i] < fd_threshold &&
+                fd_char_views[i] < match_min)
+            {
+                match_idx = i;
+                match_min = fd_char_views[i];
+            }
+        }
+
+        if (match_idx == -1) // create replacement contour
+        {
+            // center of evolved contour = center of replacement contour
+            cv::Mat_<float> s(NUM_PARAMS, 1);
+            cv::Moments m = cv::moments(evolved.mask, true);
+            cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
+            s(PARAM_X) = center.x;
+            s(PARAM_Y) = center.y;
+
+            // TODO: try to set translation and scaling (!!) in fourier descr.
+
+            evolved_repl.set_mask(char_views_fd[last_match_idx].reconstruct());
+            evolved_repl.transform_affine(s);
+        }
+        else
+            last_match_idx = match_idx; // for replacemnet contour
+
+/*
         // check for occlusion
         if (fd_templ >= fd_threshold)
         {
@@ -384,7 +441,9 @@ int main(int argc, char *argv[])
         }
         else // not occluded
             last_occluded <= 0 ? 0 : last_occluded--;
+*/
 
+/*
         // handle template replacement
         if (!last_occluded)
         {
@@ -423,7 +482,7 @@ int main(int argc, char *argv[])
             else
                 next_free++;
         }
-
+*/
         // =====================================================================
         // = UPDATE PARTICLE FILTER                                            =
         // =====================================================================
@@ -438,26 +497,41 @@ int main(int argc, char *argv[])
         // =====================================================================
 
         std::cout << boost::format("#%03d: bc-templ[ %f ] hu-templ[ %f ] "
-                                   "fd-templ[ %f ] last-occluded[ %d ] "
-                                   "next-free[ %d ]")
-                     % cnt_frame % bc_templ % hu_templ % fd_templ
-                     % last_occluded % next_free << std::endl;
+                                   /*"fd-templ[ %f ] last-occluded[ %d ] "
+                                   "next-free[ %d ]"*/)
+                     % cnt_frame % bc_templ % hu_templ/* % fd_templ
+                     % last_occluded % next_free << std::endl*/;
+
+        std::cout << "fd_char_views[ ";
+        for (int i = 0; i < fd_char_views.size(); i++)
+            std::cout << boost::format("%1.4f") % fd_char_views[i] << " ";
+        std::cout << "]" << std::endl;
 
         // =====================================================================
         // = IMAGE OUTPUT                                                      =
         // =====================================================================
-
+/*
+        if (cnt_frame >= 280 && cnt_frame <= 300)
+        {
+            std::stringstream s;
+            s << boost::format("/home/peter/Desktop/cv_fish/cv_fish_%03d.png")
+                 % cnt_frame;
+//            cv::imwrite(s.str(), evolved_fd.reconstruct() == 1);
+            cv::waitKey();
+        }
+*/
         // draw predicted estimate
-        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
+//        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
 
         // draw contours
         templ.draw(window_templ, BLUE);
-        evolved.draw(window_frame, WHITE);
 //        cv::rectangle(window_templ, templ.bound, BLUE);
 //        cv::rectangle(window_frame, evolved.bound, WHITE);
 
         if (!evolved_repl.empty())
-            evolved_repl.draw(window_frame, BLUE);
+            evolved_repl.draw(window_frame, WHITE);
+        else
+            evolved.draw(window_frame, WHITE);
 
         // vieo output
         cv::Mat video_frame;

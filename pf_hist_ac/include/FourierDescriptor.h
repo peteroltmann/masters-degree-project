@@ -8,6 +8,8 @@ class FourierDescriptor
 {
 public:
 
+    FourierDescriptor(); //!< The default constructor.
+
     /*!
      * \brief Construct fourier descriptor from a given contour mask.
      * \param mask  masks interior pixel (interior = 1/ != 0)

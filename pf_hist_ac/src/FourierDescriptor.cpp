@@ -3,6 +3,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 
+FourierDescriptor::FourierDescriptor() {}
+
 FourierDescriptor::FourierDescriptor(const cv::Mat_<uchar>& mask)
 {
     init(mask);
