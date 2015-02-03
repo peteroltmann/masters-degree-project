@@ -16,6 +16,11 @@ public:
      */
     FourierDescriptor(const cv::Mat_<uchar>& mask);
 
+    FourierDescriptor(const FourierDescriptor& other); //!< Copy constructor.
+
+    //! Assignement operator.
+    FourierDescriptor& operator=(const FourierDescriptor& other);
+
     virtual ~FourierDescriptor(); //!< The default destructor.
 
     /*!

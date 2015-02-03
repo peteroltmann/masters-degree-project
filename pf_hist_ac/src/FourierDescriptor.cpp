@@ -10,6 +10,28 @@ FourierDescriptor::FourierDescriptor(const cv::Mat_<uchar>& mask)
     init(mask);
 }
 
+FourierDescriptor::FourierDescriptor(const FourierDescriptor& other) :
+    mask_size(other.mask_size),
+    center(other.center),
+    num_points(other.num_points),
+    cp(other.cp)
+{
+    other.U.copyTo(U);
+    other.Fc.copyTo(Fc);
+    other.Fp.copyTo(Fp);
+}
+
+FourierDescriptor&FourierDescriptor::operator=(const FourierDescriptor& other)
+{
+    mask_size = other.mask_size;
+    center = other.center;
+    num_points = other.num_points;
+    cp = other.cp;
+    other.U.copyTo(U);
+    other.Fc.copyTo(Fc);
+    other.Fp.copyTo(Fp);
+}
+
 FourierDescriptor::~FourierDescriptor() {}
 
 void FourierDescriptor::init(const cv::Mat_<uchar>& mask)
