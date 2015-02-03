@@ -1,4 +1,5 @@
 #include "RegBasedContours.h"
+#include "Contour.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -77,6 +78,7 @@ int main(int argc, char** argv)
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
 
     RegBasedContours segm;
+    Contour contour(mask);
 
 #ifdef TIME_MEASUREMENT_TOTAL
     int64 t1, t2;
@@ -84,7 +86,8 @@ int main(int argc, char** argv)
 #endif
 
 //    segm.apply(frame, mask, phi, iterations, method, localized, rad, alpha);
-    segm.applySFM(frame, mask, phi, iterations, method, localized, rad, alpha);
+    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha);
+//    contour.evolve(segm, frame, iterations);
 
 #ifdef TIME_MEASUREMENT_TOTAL
     t2 = cv::getTickCount();
@@ -93,20 +96,24 @@ int main(int argc, char** argv)
 #endif
 
 //    cv::FileStorage fs2("../templ.yml", cv::FileStorage::WRITE);
-//    cv::Mat templ(phi.size(), CV_8U, cv::Scalar(0));
-//    templ.setTo(1, phi <= 0);
+//    cv::Mat templ(frame.size(), CV_8U, cv::Scalar(0));
+//    templ.setTo(1, segm._phi <= 0);
 //    fs2 << "templ" << templ;
 
     if (localized)
     {
         // make image smaller for faster computation
-        cv::resize(phi, phi, cv::Size(frame.cols*2, frame.rows*2));
+        cv::resize(segm._phi, segm._phi, cv::Size(frame.cols*2, frame.rows*2));
     }
 
+    cv::waitKey();
+
     // show segmentation image
-    Mat seg = Mat::zeros(phi.size(), CV_8U);
-    seg.setTo(255, phi < 0);
+    Mat seg = Mat::zeros(frame.size(), CV_8U);
+    seg.setTo(255, segm._phi <= 0);
     imshow(WINDOW_NAME, seg);
+//    imshow(WINDOW_NAME, contour.mask == 1);
+
 
     std::cout << "Done. Press key to quit." << std::endl;
     waitKey(0);

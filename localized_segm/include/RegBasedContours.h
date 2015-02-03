@@ -37,7 +37,7 @@ public:
      * \param rad           the radius of localized regions
      * \param alpha         the curvature weight (higher -> smoother)
      */
-    void applySFM(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
+    void applySFM(cv::Mat& frame, cv::Mat initMask, int iterations,
                   int method=0, bool localized=false, int rad=18,
                   float alpha=.2f);
 
@@ -76,6 +76,11 @@ public:
      */
     cv::Mat mask2phi(cv::Mat mask);
 
+    void setFrame(cv::Mat& frame);
+    void init(cv::Mat &initMask);
+    void iterate();
+    void calcF();
+
 private:
     /*!
      * \brief Adds specified point to a specified (temporay) list with checking
@@ -89,8 +94,28 @@ private:
      */
     bool pushBack(int listNo, bool tmp, cv::Point p, cv::Size size);
 
-    std::list<cv::Point> lz, ln1, lp1, ln2, lp2; //!< Level set lists.
-    std::list<cv::Point> sz, sn1, sp1, sn2, sp2; //!< Temporary lists.
+    bool _localized;
+    int _method;
+    float _alpha;
+    float _rad;
+
+    float _sumInt;
+    float _sumExt;
+    float _cntInt;
+    float _cntExt;
+    float _meanInt;
+    float _meanExt;
+
+public:
+    cv::Mat _image;   //!< Current original frame
+    cv::Mat _frame; //!< Current frane in CV_32F
+    cv::Mat _phi;
+    cv::Mat _label;
+    cv::Mat _F;
+    std::list<cv::Point> _lz, _ln1, _lp1, _ln2, _lp2; //!< Level set lists.
+    std::list<cv::Point> _sz, _sn1, _sp1, _sn2, _sp2; //!< Temporary lists.
+    std::list<cv::Point>::iterator _lz_it, _ln1_it, _lp1_it, _ln2_it, _lp2_it;
+    std::list<cv::Point>::iterator _sz_it, _sn1_it, _sp1_it, _sn2_it, _sp2_it;
 };
 
 #endif // LOCALIZED_CONTOURS_H
