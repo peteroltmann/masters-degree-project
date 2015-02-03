@@ -4,7 +4,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-class RegBasedContours;
+class RegBasedContoursC3;
 
 /*!
  * \brief The Contour class to represent an active contour for tracking
@@ -28,7 +28,7 @@ public:
      * \param frame         the current frame
      * \param iterations    the number of iterations
      */
-    void evolve(RegBasedContours& segm, cv::Mat& frame, int iterations);
+    void evolve(RegBasedContoursC3& segm, cv::Mat& frame, int iterations);
 
     /*!
      * \brief Calculate bounding rectangle of the contour.

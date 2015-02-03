@@ -17,11 +17,11 @@
  * This class offers the functionality to apply different region-based active
  * contours using the level-set method (narrow band).
  */
-class RegBasedContours
+class RegBasedContoursC3
 {
 public:
-    RegBasedContours(); //!< The default constructor.
-    virtual ~RegBasedContours(); //!< The default destructor.
+    RegBasedContoursC3(); //!< The default constructor.
+    virtual ~RegBasedContoursC3(); //!< The default destructor.
 
     /*!
      * \brief Apply a region-based active contour algorithm to the specified

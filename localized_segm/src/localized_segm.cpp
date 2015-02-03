@@ -1,4 +1,4 @@
-#include "RegBasedContours.h"
+#include "RegBasedContoursC3.h"
 #include "Contour.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 
     namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
 
-    RegBasedContours segm;
+    RegBasedContoursC3 segm;
     Contour contour(mask);
 
 #ifdef TIME_MEASUREMENT_TOTAL

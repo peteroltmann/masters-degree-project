@@ -1,5 +1,5 @@
 #include "Contour.h"
-#include "RegBasedContours.h"
+#include "RegBasedContoursC3.h"
 
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
@@ -13,7 +13,7 @@ Contour::Contour(const cv::Mat_<uchar>& mask)
     set_mask(mask);
 }
 
-void Contour::evolve(RegBasedContours& segm, cv::Mat& frame, int iterations)
+void Contour::evolve(RegBasedContoursC3& segm, cv::Mat& frame, int iterations)
 {
     segm.setFrame(frame);
     segm.init(mask);

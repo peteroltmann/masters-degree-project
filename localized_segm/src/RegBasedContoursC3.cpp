@@ -1,20 +1,20 @@
-#include "RegBasedContours.h"
+#include "RegBasedContoursC3.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <boost/format.hpp>
 
-RegBasedContours::RegBasedContours() :
+RegBasedContoursC3::RegBasedContoursC3() :
     _localized(false),
     _method(CHAN_VESE),
     _alpha(.2f),
     _rad(18.f)
 {}
 
-RegBasedContours::~RegBasedContours() {}
+RegBasedContoursC3::~RegBasedContoursC3() {}
 
-void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat initMask,
+void RegBasedContoursC3::applySFM(cv::Mat& frame, cv::Mat initMask,
                                 int iterations, int method, bool localized,
                                 int rad, float alpha)
 {
@@ -79,7 +79,7 @@ void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat initMask,
 #endif
 }
 
-void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
+void RegBasedContoursC3::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                              int iterations, int method, bool localized,
                              int rad, float alpha)
 {
@@ -284,7 +284,7 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
     }
 }
 
-void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
+void RegBasedContoursC3::sussmanReinit(cv::Mat& D, float dt)
 {
     cv::Mat a(D.size(), D.type()); // D_x^-
     cv::Mat b(D.size(), D.type()); // D_x^+
@@ -348,7 +348,7 @@ void RegBasedContours::sussmanReinit(cv::Mat& D, float dt)
     D = Dn;
 }
 
-cv::Mat RegBasedContours::mask2phi(cv::Mat mask)
+cv::Mat RegBasedContoursC3::mask2phi(cv::Mat mask)
 {
     // TODO: understand
     // phi=bwdist(init_a)-bwdist(1-init_a)+im2double(init_a)-.5;
@@ -367,13 +367,13 @@ cv::Mat RegBasedContours::mask2phi(cv::Mat mask)
     return phi;
 }
 
-void RegBasedContours::setFrame(cv::Mat& frame)
+void RegBasedContoursC3::setFrame(cv::Mat& frame)
 {
     frame.copyTo(_image);
     frame.convertTo(_frame, CV_32F);
 }
 
-void RegBasedContours::init(cv::Mat& initMask)
+void RegBasedContoursC3::init(cv::Mat& initMask)
 {
     // reset level set lists
     _lz.clear(); _ln1.clear(); _lp1.clear(); _ln2.clear(); _lp2.clear();
@@ -568,7 +568,7 @@ void RegBasedContours::init(cv::Mat& initMask)
     }
 }
 
-void RegBasedContours::iterate()
+void RegBasedContoursC3::iterate()
 {
     // reset temporary lists
     _sz.clear(); _sn1.clear(); _sp1.clear(); _sn2.clear(); _sp2.clear();
@@ -916,7 +916,7 @@ void RegBasedContours::iterate()
     }
 }
 
-void RegBasedContours::calcF()
+void RegBasedContoursC3::calcF()
 {
     _F = cv::Mat(_phi.size(), _phi.type(), cv::Scalar(0));
     float maxF = 0.f;
@@ -1039,7 +1039,7 @@ void RegBasedContours::calcF()
     }
 }
 
-bool RegBasedContours::pushBack(int listNo, bool tmp, cv::Point p, cv::Size size)
+bool RegBasedContoursC3::pushBack(int listNo, bool tmp, cv::Point p, cv::Size size)
 {
     int x = p.x;
     int y = p.y;
