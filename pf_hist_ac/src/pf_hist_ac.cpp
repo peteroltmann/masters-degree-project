@@ -226,62 +226,6 @@ int main(int argc, char *argv[])
         templ_image.copyTo(window_templ);
 
         // =====================================================================
-        // = TRYOUT                                                            =
-        // =====================================================================
-/*
-        FourierDescriptor fd(templ.mask);
-
-        float a = 0.785398163;
-
-        cv::Mat Tm = (cv::Mat_<float>(3, 3) <<  1, 0,  -fd.center.x,
-                                                0, 1,  -fd.center.y,
-                                                0, 0,             1);
-
-        cv::Mat S  = (cv::Mat_<float>(3, 3) <<  1.5,   0, 0,
-                                                  0, 1.5, 0,
-                                                  0,   0, 1);
-
-        cv::Mat T  = (cv::Mat_<float>(3, 3) <<  1, 0,   fd.center.x,
-                                                0, 1,   fd.center.y,
-                                                0, 0,             1);
-
-        cv::Mat R = (cv::Mat_<float>(3, 3) <<  cos(a), -sin(a), 0,
-                                               sin(a),  cos(a), 0,
-                                                    0,      0,  1);
-
-        cv::Mat M = T*R*S*Tm;
-        M.pop_back();
-        std::cout << "M" << M << std::endl;
-
-//        cv::Mat M = (cv::Mat_<float>(2, 3) <<  1, 0, -50,
-//                                               0, 1, -50);
-
-        cv::imshow("Reconstruct 1", templ.mask == 1);
-        cv::waitKey(1);
-        cv::warpAffine(templ.mask, templ.mask, M, templ.mask.size());
-//        templ.mask.setTo(0);
-//        cv::rectangle(templ.mask, cv::Rect(100, 100, 100, 100), 1, -1);
-        cv::imshow("Reconstruct 2", templ.mask == 1);
-        cv::waitKey();
-
-        FourierDescriptor fd2(templ.mask);
-        fd.low_pass(num_fourier);
-        fd2.low_pass(num_fourier);
-
-        float match_fd = fd.match(fd2);
-        std::cout << "match_fd: " << match_fd << std::endl;
-
-        // reconstruct
-        cv::Mat reconst_mask = fd.reconstruct();
-        cv::imshow("Reconstruct 1", reconst_mask == 1);
-
-        cv::Mat reconst2_mask = fd2.reconstruct();
-        cv::imshow("Reconstruct 2", reconst2_mask == 1);
-        cv::waitKey();
-
-        return EXIT_SUCCESS; // ################################################
-*/
-        // =====================================================================
         // = PARTICLE FILTER                                                   =
         // =====================================================================
 
@@ -381,21 +325,6 @@ int main(int argc, char *argv[])
         // = OCCLUSION HANDLING                                                =
         // =====================================================================
 
-/*
-        if (fd_templ < fd_threshold)
-        {
-            // apdapt (replace) template
-            // either: check last x frames
-            // or: add as additional template (from now: match all templates)
-        }
-        else // if (fd_templ > fd_threshold_repl)
-        {
-            // occluded or deformed
-            // check occlusion: characteristic views
-            // use evolved_repl
-        }
-*/
-
         // estimate best matching view
         int match_idx = -1;
         float match_min = fd_threshold;
@@ -417,8 +346,6 @@ int main(int argc, char *argv[])
             cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
             s(PARAM_X) = center.x;
             s(PARAM_Y) = center.y;
-
-            // TODO: try to set translation and scaling (!!) in fourier descr.
 
             evolved_repl.set_mask(char_views_fd[last_match_idx].reconstruct());
             evolved_repl.transform_affine(s);
