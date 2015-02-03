@@ -39,7 +39,8 @@ public:
      */
     void applySFM(cv::Mat& frame, cv::Mat initMask, int iterations,
                   int method=0, bool localized=false, int rad=18,
-                  float alpha=.2f);
+                  float alpha=.2f,
+                  cv::Vec3f a=cv::Vec3f(1.f/3.f, 1.f/3.f, 1.f/3.f));
 
     /*!
      * \brief Create a signed distance function (SDF) from a mask.
@@ -62,10 +63,14 @@ public:
      */
     void init(cv::Mat &initMask);
 
-    //!< Do one iteration step of the sparse-field method.
+    /*!
+     * Do one iteration step of the sparse-field method.
+     */
     void iterate();
 
-    //!< Calculate the force affecting the contour.
+    /*!
+     * \brief Calculate the force affecting the contour.
+     */
     void calcF();
 
 private:
@@ -86,12 +91,14 @@ private:
     float _alpha;
     float _rad;
 
-    float _sumInt;
-    float _sumExt;
+    cv::Vec3f _a; //!< The weighting factors for each channel
+
+    cv::Vec3f _sumInt;
+    cv::Vec3f _sumExt;
     float _cntInt;
     float _cntExt;
-    float _meanInt;
-    float _meanExt;
+    cv::Vec3f _meanInt;
+    cv::Vec3f _meanExt;
 
 public:
     cv::Mat _image;   //!< Current original frame

@@ -15,9 +15,10 @@ int main(int argc, char** argv)
     Rect maskRect;
     int iterations;
     int method;
+    bool localized;
     int rad;
     float alpha;
-    bool localized;
+    cv::Vec3f a;
 
     // takes the data type's default value, if not set in file
     cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
@@ -28,10 +29,12 @@ int main(int argc, char** argv)
     fs["localized"] >> localized;
     fs["rad"] >> rad;
     fs["alpha"] >> alpha;
+    fs["a"] >> a;
 
     // check parameters
     Mat frame;
-    frame = imread(imagePath, CV_LOAD_IMAGE_GRAYSCALE);
+    frame = imread(imagePath, CV_LOAD_IMAGE_COLOR);
+    cv::cvtColor(frame, frame, CV_RGB2HSV);
     if (frame.empty())
     {
         std::cerr << "Error loading image: '" << imagePath << "'" << std::endl;
@@ -62,6 +65,10 @@ int main(int argc, char** argv)
     {
         alpha = .2f;
     }
+    if (a == cv::Vec3f(0, 0, 0))
+    {
+        a = cv::Vec3f(1.f/3.f, 1.f/3.f, 1.f/3.f);
+    }
 
     Mat phi;
     Mat mask = Mat::zeros(frame.size(), CV_8U);
@@ -85,9 +92,8 @@ int main(int argc, char** argv)
     t1 = cv::getTickCount();
 #endif
 
-//    segm.apply(frame, mask, phi, iterations, method, localized, rad, alpha);
-    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha);
-//    contour.evolve(segm, frame, iterations);
+    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha, a);
+    contour.evolve(segm, frame, iterations);
 
 #ifdef TIME_MEASUREMENT_TOTAL
     t2 = cv::getTickCount();
@@ -109,10 +115,10 @@ int main(int argc, char** argv)
     cv::waitKey();
 
     // show segmentation image
-    Mat seg = Mat::zeros(frame.size(), CV_8U);
-    seg.setTo(255, segm._phi <= 0);
-    imshow(WINDOW_NAME, seg);
-//    imshow(WINDOW_NAME, contour.mask == 1);
+//    Mat seg = Mat::zeros(frame.size(), CV_8U);
+//    seg.setTo(255, segm._phi <= 0);
+//    imshow(WINDOW_NAME, seg);
+    imshow(WINDOW_NAME, contour.mask == 1);
 
 
     std::cout << "Done. Press key to quit." << std::endl;

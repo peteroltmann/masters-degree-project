@@ -16,7 +16,7 @@ RegBasedContoursC3::~RegBasedContoursC3() {}
 
 void RegBasedContoursC3::applySFM(cv::Mat& frame, cv::Mat initMask,
                                 int iterations, int method, bool localized,
-                                int rad, float alpha)
+                                int rad, float alpha, cv::Vec3f a)
 {
 #ifdef SAVE_AS_VIDEO
     cv::VideoWriter videoOut;
@@ -36,6 +36,7 @@ void RegBasedContoursC3::applySFM(cv::Mat& frame, cv::Mat initMask,
     _localized = localized;
     _rad = rad;
     _alpha = alpha;
+    _a = a;
 
     setFrame(frame);
     init(initMask);
@@ -59,12 +60,12 @@ void RegBasedContoursC3::applySFM(cv::Mat& frame, cv::Mat initMask,
 #endif
 #ifdef SHOW_CONTOUR_EVOLUTION
         // show contours
-        cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, frame.type());
+        cv::Mat inOut = cv::Mat::zeros(_image.rows, _image.cols, CV_8U);
         inOut.setTo(255, _phi < 0);
         std::vector< std::vector<cv::Point> > contours;
         cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
         cv::Mat out;
-        frame.copyTo(out);
+        _image.copyTo(out);
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
         cv::imshow(WINDOW_NAME, out);
         cv::waitKey(1);
@@ -100,15 +101,16 @@ cv::Mat RegBasedContoursC3::mask2phi(cv::Mat mask)
 
 void RegBasedContoursC3::setFrame(cv::Mat& frame)
 {
+
     frame.copyTo(_image);
-    frame.convertTo(_frame, CV_32F);
+    frame.convertTo(_frame, CV_32FC3);
 }
 
 void RegBasedContoursC3::init(cv::Mat& initMask)
 {
     // reset level set lists
     _lz.clear(); _ln1.clear(); _lp1.clear(); _ln2.clear(); _lp2.clear();
-    _phi = cv::Mat(_frame.size(), _frame.type(), cv::Scalar(-3));
+    _phi = cv::Mat(_frame.size(), CV_32F, cv::Scalar(-3));
     _label = cv::Mat(_phi.size(), cv::DataType<int>::type, cv::Scalar(-3));
     cv::Mat extPts = initMask == 0;
     _label.setTo(3, extPts);
@@ -122,7 +124,7 @@ void RegBasedContoursC3::init(cv::Mat& initMask)
     for (int y = 3; y < _frame.rows-3; y++)
     {
         float* phiPtr = _phi.ptr<float>(y);
-        const float* framePtr = _frame.ptr<float>(y);
+        const cv::Vec3f* framePtr = _frame.ptr<cv::Vec3f>(y);
         int* labelPtr = _label.ptr<int>(y);
         const uchar* initMaskPtr = initMask.ptr<uchar>(y);
         for (int x = 3; x < _frame.cols-4; x++)
@@ -626,7 +628,7 @@ void RegBasedContoursC3::iterate()
         for (lin_it = lin.begin(); lin_it != lin.end(); lin_it++)
         {
             int y = lin_it->y, x = lin_it->x;
-            float Ix = _frame.at<float>(y, x);
+            cv::Vec3f Ix = _frame.at<cv::Vec3f>(y, x);
             _sumInt += Ix;
             _sumExt -= Ix;
             _cntInt++;
@@ -636,7 +638,7 @@ void RegBasedContoursC3::iterate()
         for (lout_it = lout.begin(); lout_it != lout.end(); lout_it++)
         {
             int y = lout_it->y, x = lout_it->x;
-            float Ix = _frame.at<float>(y, x);
+            cv::Vec3f Ix = _frame.at<cv::Vec3f>(y, x);
             _sumInt -= Ix;
             _sumExt += Ix;
             _cntInt--;
@@ -649,6 +651,9 @@ void RegBasedContoursC3::iterate()
 
 void RegBasedContoursC3::calcF()
 {
+    if (_a == cv::Vec3f(0, 0, 0))
+        _a = cv::Vec3f(1.f/3.f, 1.f/3.f, 1.f/3.f);
+
     _F = cv::Mat(_phi.size(), _phi.type(), cv::Scalar(0));
     float maxF = 0.f;
     float maxF2 = 0.f;
@@ -674,7 +679,7 @@ void RegBasedContoursC3::calcF()
             for (int y = 0; y < subPhi.rows; y++)
             {
                 const float* subPhiPtr = subPhi.ptr<float>(y);
-                const float* subImgPtr = subImg.ptr<float>(y);
+                const cv::Vec3f* subImgPtr = subImg.ptr<cv::Vec3f>(y);
                 for (int x = 0; x < subPhi.cols; x++)
                 {
                     if (subPhiPtr[x] <= 0)
@@ -694,21 +699,28 @@ void RegBasedContoursC3::calcF()
         }
 
         // calculate speed function
-        float Ix = _frame.at<float>(y, x);
+        cv::Vec3f Ix = _frame.at<cv::Vec3f>(y, x);
         float Fi = 0.f;
 
         // F = (I(x)-u).^2-(I(x)-v).^2
         if (_method == CHAN_VESE)
         {
-            float diffInt = Ix - _meanInt;
-            float diffExt = Ix - _meanExt;
-            Fi = diffInt*diffInt - diffExt*diffExt;
+            cv::Vec3f diffInt = Ix - _meanInt;
+            cv::Vec3f diffExt = Ix - _meanExt;
+            cv::multiply(diffInt, diffInt, diffInt);
+            cv::multiply(diffExt, diffExt, diffExt);
+            cv::Vec3f tmp = diffInt - diffExt;
+            Fi = _a[0] * tmp[0] + _a[1] * tmp[1] + _a[2] * tmp[2];
         }
         // F = -((u-v).*((I(idx)-u)./Ain+(I(idx)-v)./Aout));
         else if (_method == YEZZI)
         {
-            Fi = -((_meanInt - _meanExt) * ((Ix - _meanInt) / _cntInt
-                                          + (Ix - _meanExt) / _cntExt));
+            cv::Vec3f tmp = (Ix - _meanInt) / _cntInt
+                          + (Ix - _meanExt) / _cntExt;
+            cv::Vec3f diffMean = _meanInt - _meanExt;
+            cv::multiply(diffMean, tmp, tmp);
+            tmp = -tmp;
+            Fi = _a[0] * tmp[0] + _a[1] * tmp[1] + _a[2] * tmp[2];
         }
 
         _F.at<float>(y, x) = Fi;

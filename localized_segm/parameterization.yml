@@ -26,3 +26,4 @@ method: 0                               # 0: CHAN_VESE, 1: YEZZI
 localized: 0                            # true/false (0/1)
 rad: 18                                 # radius of localized regions
 alpha: .2                               # curvature weight (higher -> smoother)
+a: [0.9, 0.1, 0.1]                      # weighting for each channel
