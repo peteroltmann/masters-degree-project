@@ -42,32 +42,6 @@ public:
                   float alpha=.2f);
 
     /*!
-     * \brief Apply a region-based active contour algorithm to the specified
-     * image.
-     *
-     * \param frame         the image to apply the algorithm to
-     * \param initMask      the initialization mask for the level-set function
-     * \param phi           the level-set function (empty cv::Mat)
-     * \param iterations    the number of iterations
-     * \param method        the contour's speed function method
-     * \param localized     weather the localized version of the specified
-     *                      method is supposed to be used
-     * \param rad           the radius of localized regions
-     * \param alpha         the curvature weight (higher -> smoother)
-     */
-    void apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
-               int method=1, bool localized=false, int rad=18, float alpha=.2f);
-
-    /*!
-     * \brief Sussman-reinitialization to retain the level-set function to b a
-     * signed distance function (SDF).
-     *
-     * \param D     the function to apply the Sussman-reinitialization to
-     * \param dt    the time step.
-     */
-    void sussmanReinit(cv::Mat&D, float dt);
-
-    /*!
      * \brief Create a signed distance function (SDF) from a mask.
      *
      * \param mask  the mask that describes the initial contour: 1 inside and 0
@@ -76,9 +50,22 @@ public:
      */
     cv::Mat mask2phi(cv::Mat mask);
 
+    /*!
+     * \brief Set the frame for contour evolution.
+     * \param frame the frame to be set
+     */
     void setFrame(cv::Mat& frame);
+
+    /*!
+     * \brief Initialize the sparse-field method.
+     * \param initMask  the initialization mask
+     */
     void init(cv::Mat &initMask);
+
+    //!< Do one iteration step of the sparse-field method.
     void iterate();
+
+    //!< Calculate the force affecting the contour.
     void calcF();
 
 private:
