@@ -113,9 +113,15 @@ int main(int argc, char** argv)
 
     cv::waitKey();
 
+    // get rid of eventual blobs
+    cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
+    inOut.setTo(255, segm._phi <= 0);
+    std::vector< std::vector<cv::Point> > contours;
+    cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+
     // show segmentation image
     Mat seg = Mat::zeros(frame.size(), CV_8U);
-    seg.setTo(255, segm._phi <= 0);
+    cv::drawContours(seg, contours, -1, 255, CV_FILLED);
     imshow(WINDOW_NAME, seg);
 
     std::cout << "Done. Press key to quit." << std::endl;
