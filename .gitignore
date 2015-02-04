@@ -47,17 +47,16 @@ Thumbs.db
 build/
 devel/
 input/
+output/
 
 # Qt Creator files #
 ####################
 
 CMakeLists.txt.user
+*-pre1
 
 # Specific files #
 ##################
 
-palau2_frames_*
-palau2_initial_curve.png
 templ*
-output.*
-test.png
+matlab_out.m
