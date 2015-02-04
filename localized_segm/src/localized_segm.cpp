@@ -100,11 +100,6 @@ int main(int argc, char** argv)
               << std::endl;
 #endif
 
-//    cv::FileStorage fs2("../templ.yml", cv::FileStorage::WRITE);
-//    cv::Mat templ(frame.size(), CV_8U, cv::Scalar(0));
-//    templ.setTo(1, segm._phi <= 0);
-//    fs2 << "templ" << templ;
-
     if (localized)
     {
         // make image smaller for faster computation
@@ -112,6 +107,7 @@ int main(int argc, char** argv)
     }
 
     cv::waitKey();
+    std::cout << "Done. Press key to show segmentation image." << std::endl;
 
     // get rid of eventual blobs
     cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
@@ -123,6 +119,11 @@ int main(int argc, char** argv)
     Mat seg = Mat::zeros(frame.size(), CV_8U);
     cv::drawContours(seg, contours, -1, 255, CV_FILLED);
     imshow(WINDOW_NAME, seg);
+
+//    cv::FileStorage fs2("../templ.yml", cv::FileStorage::WRITE);
+//    cv::Mat templ(frame.size(), CV_8U, cv::Scalar(0));
+//    templ.setTo(1, seg == 255);
+//    fs2 << "templ" << templ;
 
     std::cout << "Done. Press key to quit." << std::endl;
     waitKey(0);
