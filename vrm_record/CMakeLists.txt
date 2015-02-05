@@ -36,8 +36,8 @@ if(Boost_FOUND)
     target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
 
-include_directories(/usr/local/include)
 target_link_libraries(${PROJECT_NAME} /usr/local/lib/libvrmusbcam2.so)
+include_directories(/usr/local/include)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
