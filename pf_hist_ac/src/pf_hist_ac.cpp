@@ -319,40 +319,82 @@ int main(int argc, char *argv[])
         }
 */
 
-//        if (bc_templ >= 0.4)
+        // TODO: bc_threshold
+        if (bc_templ >= .25f) // lost object after contour evolution
+        {
+            // create replacement "contour": use PF estimate
+            cv::Mat_<uchar> tmp(frame.size(), 0);
+            cv::Mat_<uchar> roi(tmp, estimate_rect);
+            roi.setTo(1);
+            evolved_repl.set_mask(tmp);
+
+            // TODO: resize repl roi to pf.estimate scaling
+        }
 
         // =====================================================================
         // = OCCLUSION HANDLING                                                =
         // =====================================================================
 
-        // estimate best matching view
-        int match_idx = -1;
-        float match_min = fd_threshold;
-        for (int i = 0; i < fd_char_views.size(); i++)
-        {
-            if (fd_char_views[i] < fd_threshold &&
-                fd_char_views[i] < match_min)
-            {
-                match_idx = i;
-                match_min = fd_char_views[i];
-            }
-        }
-
-        if (match_idx == -1) // create replacement contour
-        {
-            // center of evolved contour = center of replacement contour
-            cv::Mat_<float> s(NUM_PARAMS, 1);
-            cv::Moments m = cv::moments(evolved.mask, true);
-            cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
-            s(PARAM_X) = center.x;
-            s(PARAM_Y) = center.y;
-
-            evolved_repl.set_mask(char_views_fd[last_match_idx].reconstruct());
-            evolved_repl.transform_affine(s);
-        }
         else
-            last_match_idx = match_idx; // for replacemnet contour
+        {
+            // estimate best matching view
+            int match_idx = -1;
+            float match_min = fd_threshold;
+            for (int i = 0; i < fd_char_views.size(); i++)
+            {
+                if (fd_char_views[i] < fd_threshold &&
+                    fd_char_views[i] < match_min)
+                {
+                    match_idx = i;
+                    match_min = fd_char_views[i];
+                }
+            }
 
+            if (match_idx == -1) // occlusion / unknown deformation
+            {
+                // create replacement contour
+
+                // reconstruct from last matching fourier descriptor
+                evolved_repl.set_mask(char_views_fd[last_match_idx].
+                                      reconstruct());
+
+                // resize repl roi to evolved bound
+                float ar   = 0.f;
+                float len1 = evolved.bound.width;
+                float len2 = evolved_repl.bound.width;
+                if (evolved.bound.height < len1) // use height as scaling base
+                {
+                    len1 = evolved.bound.height;
+                    len2 = evolved_repl.bound.height;
+                }
+                ar = len1 / len2;
+
+                cv::Mat tmp;
+                cv::resize(evolved_repl.roi, tmp,
+                           cv::Size(evolved_repl.bound.width  * ar,
+                                    evolved_repl.bound.height * ar));
+
+                // zero-pad to mask size
+                int bottom = (evolved_repl.mask.rows - tmp.rows);
+                int right  = (evolved_repl.mask.cols - tmp.cols);
+                cv::copyMakeBorder(tmp, tmp, 0, bottom, 0, right,
+                                   cv::BORDER_CONSTANT, 0);
+
+                // center of evolved contour = center of replacement contour
+                cv::Mat_<float> s(NUM_PARAMS, 1);
+                cv::Moments m = cv::moments(evolved.mask, true);
+                cv::Point2f center(m.m10/m.m00, m.m01/m.m00);
+                s(PARAM_X) = center.x;
+                s(PARAM_Y) = center.y;
+
+                evolved_repl.set_mask(tmp);
+                evolved_repl.transform_affine(s);
+//                cv::imshow("TMP", tmp == 1);
+//                cv::waitKey();
+            }
+            else
+                last_match_idx = match_idx; // for replacement contour
+        }
 /*
         // check for occlusion
         if (fd_templ >= fd_threshold)
@@ -448,7 +490,7 @@ int main(int argc, char *argv[])
         }
 */
         // draw predicted estimate
-//        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
+        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
 
         // draw contours
         templ.draw(window_templ, BLUE);
