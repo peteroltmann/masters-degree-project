@@ -360,7 +360,7 @@ int main(int argc, char *argv[])
 
                 // resize repl roi to evolved bound
                 float ar   = 0.f;
-                float len1 = evolved.bound.width;
+                float len1 = evolved.bound.width; // (len2 * ar = len1)
                 float len2 = evolved_repl.bound.width;
                 if (evolved.bound.height < len1) // use height as scaling base
                 {
@@ -369,14 +369,21 @@ int main(int argc, char *argv[])
                 }
                 ar = len1 / len2;
 
-                cv::Mat tmp;
-                cv::resize(evolved_repl.roi, tmp,
-                           cv::Size(evolved_repl.bound.width  * ar,
-                                    evolved_repl.bound.height * ar));
+                float width = evolved_repl.bound.width * ar;
+                float height = evolved_repl.bound.height * ar;
 
-                // zero-pad to mask size
-                int bottom = (evolved_repl.mask.rows - tmp.rows);
-                int right  = (evolved_repl.mask.cols - tmp.cols);
+                // assure new size to by <= frame size
+                if (width > frame.cols)
+                    width = frame.cols;
+                if (height > frame.rows)
+                    height = frame.rows;
+
+                cv::Mat tmp;
+                cv::resize(evolved_repl.roi, tmp, cv::Size(width, height));
+
+                // zero-pad to frame size
+                int bottom = (frame.rows - tmp.rows);
+                int right  = (frame.cols - tmp.cols);
                 cv::copyMakeBorder(tmp, tmp, 0, bottom, 0, right,
                                    cv::BORDER_CONSTANT, 0);
 
@@ -389,8 +396,6 @@ int main(int argc, char *argv[])
 
                 evolved_repl.set_mask(tmp);
                 evolved_repl.transform_affine(s);
-//                cv::imshow("TMP", tmp == 1);
-//                cv::waitKey();
             }
             else
                 last_match_idx = match_idx; // for replacement contour
