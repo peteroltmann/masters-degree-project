@@ -38,17 +38,13 @@ int main(int argc, char *argv[])
     int num_fourier;
     float fd_threshold;
     int num_free_frames;
-    std::vector<std::string> char_views;
-    std::string templ_path;
-    bool cvt_color; // TODO
+    cv::Rect start_rect;
     std::string input_path;
-    bool save_video;
-    double fps;
+    std::vector<std::string> char_views;
     std::string output_path;
-    bool save_img_seq;
+    double fps;
     std::string save_img_path;
     std::string matlab_file_path;
-
 
     cv::FileStorage fs(param_path, cv::FileStorage::READ);
     if (!fs.isOpened())
@@ -65,24 +61,13 @@ int main(int argc, char *argv[])
     fs["num_fourier"] >> num_fourier;
     fs["fd_threshold"] >> fd_threshold;
     fs["num_free_frames"] >> num_free_frames;
-    fs["char_views"] >> char_views;
-    fs["templ_path"] >> templ_path;
-    fs["cvt_color"] >> cvt_color;
+    fs["start_rect"] >> start_rect;
     fs["input_path"] >> input_path;
-    fs["save_video"] >> save_video;
-    fs["fps"] >> fps;
+    fs["char_views"] >> char_views;
     fs["output_path"] >> output_path;
-    fs["save_img_seq"] >> save_img_seq;
+    fs["fps"] >> fps;
     fs["save_img_path"] >> save_img_path;
     fs["matlab_file_path"]  >> matlab_file_path;
-
-    cv::FileStorage fs2(templ_path, cv::FileStorage::READ);
-    if (!fs.isOpened())
-    {
-        std::cerr << "Error loading template: '" << templ_path << "'"
-                  << std::endl;
-        return EXIT_FAILURE;
-    }
 
     if (num_particles <= 0)
     {
@@ -124,10 +109,21 @@ int main(int argc, char *argv[])
         num_free_frames = 10;
     }
 
-    if (char_views.empty())
+
+    if (start_rect.width <= 0 || start_rect.height <= 0 ||
+        start_rect.x < 0 || start_rect.y < 0)
     {
-        // TODO
+        std::cerr << "Invalid size for starting rectangle: "
+                  << start_rect << std::endl;
+        return EXIT_FAILURE;
     }
+
+    // input_path: on open VideoCapture
+    // char_views: on first frame evolution: if empty, only use first frame
+    // output_path: on open VideoWriter
+    // fps: on open VideoWriter
+    // save_img_path: on saving image sequence
+    // matlab_file_path: on matlab output
 
     // =========================================================================
     // = DECLARATION AND INITIALIZATION                                        =
@@ -145,61 +141,48 @@ int main(int argc, char *argv[])
     cv::Mat window_templ; // current template frame for drawing output
 
     // template contour, histogram and fourier descriptor
-    cv::Mat_<uchar> in;
-    fs2["templ"] >> in;
-    Contour templ(in);
-    Contour templ_frame0(in);
+    Contour templ;
     Histogram templ_hist;
-    FourierDescriptor templ_fd(templ.mask);
-    templ_fd.low_pass(num_fourier);
+    FourierDescriptor templ_fd;
 
     cv::Mat_<float> hu1; // hu values for matlab output
     cv::Mat_<float> fd1; // fd values for matlab output
 
-    Contour templ_next;
-    cv::Mat templ_image_next;
-    int next_free = 0;
-    int last_occluded = num_free_frames;
-
-    // init characteristic views
+    // characteristic views
     int last_match_idx = 0;
     std::vector<FourierDescriptor> char_views_fd(char_views.size() + 1);
-    char_views_fd[0].init(templ.mask);
-    char_views_fd[0].low_pass(num_fourier);
-    for (int i = 0; i < char_views.size(); i++)
-    {
-        in = cv::imread(char_views[i], 0);
-        in.setTo(1, in);
-        char_views_fd[i+1].init(in);
-        char_views_fd[i+1].low_pass(num_fourier);
-    }
 
     RegBasedContours segm; // object providing the contour evolution algorithm
 
     // init particle filter
     ParticleFilter pf(num_particles);
-    pf.init(templ.bound);
 
     // open input image sequence or video
     cv::VideoCapture capture(input_path);
     if (!capture.isOpened())
     {
-        std::cerr << "Failed to open capture." << std::endl;
+        std::cerr << "Failed to open capture: '" << input_path << "'"
+                  << std::endl;
         return EXIT_FAILURE;
     }
 
-    cv::VideoWriter videoOut;
-    if(save_video)
+    // create video output, if ouput path is set
+    cv::VideoWriter video_out;
+    if(!output_path.empty())
     {
-        double input_fps = capture.get(CV_CAP_PROP_FPS);
         if (fps <= 0)
         {
+            double input_fps = capture.get(CV_CAP_PROP_FPS);
             fps = input_fps;
         }
 
-        videoOut.open(output_path, CV_FOURCC('X', 'V', 'I', 'D'), fps,
-                      templ.mask.size(), true);
-        if (!videoOut.isOpened())
+        // get frame size from video input
+        cv::Size frame_size(capture.get(CV_CAP_PROP_FRAME_WIDTH),
+                            capture.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+        video_out.open(output_path, CV_FOURCC('X', 'V', 'I', 'D'), fps,
+                      frame_size, true);
+        if (!video_out.isOpened())
         {
             std::cerr << "Could not write output video" << std::endl;
             return EXIT_FAILURE;
@@ -222,17 +205,68 @@ int main(int argc, char *argv[])
 
         cv::Rect bounds(0, 0, frame.cols, frame.rows); // outer frame bounds
 
-        // calc template histogram on first frame
-        if (templ_hist.empty())
+        // =====================================================================
+        // = FIRST FRAME                                                       =
+        // =====================================================================
+
+        // evolve contour on first frame from starting rectangle
+        // to determine the template contour
+        if (templ.empty())
         {
+            // check start_rect size
+            if (start_rect.x + start_rect.width  > frame.cols ||
+                start_rect.y + start_rect.height > frame.rows)
+            {
+                std::cerr << "Error: starting rectangle " << start_rect
+                          << " does not fit with frame size " << frame.size()
+                          << std::endl;
+                return EXIT_FAILURE;
+            }
+
+            // create mask and evolve contour
+            cv::Mat start_mask = cv::Mat::zeros(frame.size(), CV_8U);
+            cv::Mat roi(start_mask, start_rect);
+            roi.setTo(1);
+            templ.set_mask(start_mask);
+            templ.evolve(segm, frame_gray, num_iterations);
+
+            // init fourier descriptor with template contour
+            templ_fd.init(templ.mask);
+            templ_fd.low_pass(num_fourier);
+
+            // init characteristic views, first: template contour
+            cv::Mat_<uchar> view_mask;
+            char_views_fd[0].init(templ.mask);
+            char_views_fd[0].low_pass(num_fourier);
+            for (int i = 0; i < char_views.size(); i++)
+            {
+                view_mask = cv::imread(char_views[i], 0);
+                if (view_mask.empty())
+                {
+                    std::cerr << "Error: can not open characteristic view: '"
+                              << char_views[i] << "'" << std::endl;
+                    return EXIT_FAILURE;
+                }
+                view_mask.setTo(1, view_mask);
+
+                // TODO: resize char views to frame size
+
+                char_views_fd[i+1].init(view_mask);
+                char_views_fd[i+1].low_pass(num_fourier);
+            }
+
             // calc template histogram
             cv::Mat frame_roi(frame, templ.bound);
             templ_hist.calc_hist(frame_roi, RGB, templ.roi);
 
             // save frame as template image
             frame.copyTo(templ_image);
+
+            // init particle filter
+            pf.init(templ.bound);
         }
 
+        // reset window template to template image every frame
         templ_image.copyTo(window_templ);
 
         // =====================================================================
@@ -410,63 +444,7 @@ int main(int argc, char *argv[])
             else
                 last_match_idx = match_idx; // for replacement contour
         }
-/*
-        // check for occlusion
-        if (fd_templ >= fd_threshold)
-        {
-            // reset occlusion counters
-            last_occluded = num_free_frames;
-            next_free = 0;
 
-            // set (reconstructed) template as replacement contour
-//            evolved.set_mask(templ.mask);
-            evolved_repl.set_mask(templ_fd.reconstruct());
-            evolved_repl.transform_affine(pf.state);
-        }
-        else // not occluded
-            last_occluded <= 0 ? 0 : last_occluded--;
-*/
-
-/*
-        // handle template replacement
-        if (!last_occluded)
-        {
-            // last x frames: free
-            if (next_free == 0)
-            {
-                // template good enough for replacement
-                if (fd_templ < fd_threshold/2.f)
-                {
-                    // set possible next template
-                    templ_next.set_mask(evolved.mask);
-                    frame.copyTo(templ_image_next);
-                    next_free++;
-                }
-                else
-                    next_free = 0; // try next (if still not occluded)
-            }
-            // next x frames: free
-            else if (next_free == num_free_frames-1)
-            {
-                // replace template
-                templ.set_mask(templ_next.mask);
-                templ_fd.init(templ_next.mask);
-                templ_fd.low_pass(num_fourier);
-
-                // calc template histogram
-//                cv::Mat frame_roi(templ_image_next, templ.bound);
-//                templ_hist.calc_hist(frame_roi, RGB, templ.roi);
-
-                // save frame as template image
-                templ_image_next.copyTo(templ_image);
-                templ_image_next.copyTo(window_templ);
-
-                next_free = 0; // reset not occluded (next) counter
-            }
-            else
-                next_free++;
-        }
-*/
         // =====================================================================
         // = UPDATE PARTICLE FILTER                                            =
         // =====================================================================
@@ -544,15 +522,28 @@ int main(int argc, char *argv[])
         cv::imshow(WINDOW_NAME, top);
         key = cv::waitKey(1);
 
-        if (save_img_seq)
+        // save image, if path is set
+        if (!save_img_path.empty())
         {
-            std::stringstream s;
-            s << boost::format(save_img_path) % cnt_frame;
-            cv::imwrite(s.str(), window_frame);
+            try
+            {
+                std::stringstream s;
+                s << boost::format(save_img_path) % cnt_frame;
+                if (!cv::imwrite(s.str(), window_frame))
+                {
+                    std::cerr << "Error: could not write image: '" << s.str()
+                              << "'" << std::endl;
+                }
+            }
+            catch (cv::Exception const&) {} // OpenCV prints error message
+            catch (std::exception const& e)
+            {
+                std::cerr << "Error: " << e.what() << std::endl;
+            }
         }
 
-        if (save_video)
-            videoOut << video_frame;
+        if (video_out.isOpened())
+            video_out << video_frame;
 
         // pause on space
         if (key == ' ')
@@ -566,7 +557,7 @@ int main(int argc, char *argv[])
     }
 
     // =========================================================================
-    // = HU OUTPUT (MATLAB)                                                    =
+    // = MATLAB OUTPUT                                                         =
     // =========================================================================
 
     if (!matlab_file_path.empty())
@@ -586,9 +577,9 @@ int main(int argc, char *argv[])
     // = VIDEO OUTPUT                                                          =
     // =========================================================================
 
-    if (save_video)
+    if (video_out.isOpened())
     {
-        videoOut.release();
+        video_out.release();
 
         // convert to mp4 using avconv system call
         std::string name = output_path.substr(0, output_path.length()-4);

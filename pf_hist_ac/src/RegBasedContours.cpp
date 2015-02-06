@@ -59,12 +59,12 @@ void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat initMask,
 #endif
 #ifdef SHOW_CONTOUR_EVOLUTION
         // show contours
-        cv::Mat inOut = cv::Mat::zeros(image.rows, image.cols, image.type());
-        inOut.setTo(255, phi < 0);
+        cv::Mat inOut = cv::Mat::zeros(_image.rows, _image.cols, _image.type());
+        inOut.setTo(255, _phi < 0);
         std::vector< std::vector<cv::Point> > contours;
         cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
         cv::Mat out;
-        image.copyTo(out);
+        _image.copyTo(out);
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
         cv::imshow(WINDOW_NAME, out);
         cv::waitKey(1);
