@@ -29,6 +29,8 @@ int main(int argc, char *argv[])
     // = PARAMETERIZATION                                                      =
     // =========================================================================
 
+    std::string param_path = argc >= 2 ? argv[1] : "../parameterization.yml";
+
     // see 'parameterization.yml' for description
     int num_particles;
     int num_iterations;
@@ -48,7 +50,15 @@ int main(int argc, char *argv[])
     std::string matlab_file_path;
 
 
-    cv::FileStorage fs("../parameterization.yml", cv::FileStorage::READ);
+    cv::FileStorage fs(param_path, cv::FileStorage::READ);
+    if (!fs.isOpened())
+    {
+        std::cerr << "Error opening '" << param_path << "'" << std::endl;
+        std::cerr << "Specify parameterization file as first argument or use "
+                     "default: '../parameterization.yml'" << std::endl;
+        return EXIT_FAILURE;
+    }
+
     fs["num_particles"] >> num_particles;
     fs["num_iterations"] >> num_iterations;
     fs["sigma"] >> sigma;
