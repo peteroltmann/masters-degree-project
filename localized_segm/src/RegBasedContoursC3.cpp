@@ -67,7 +67,7 @@ void RegBasedContoursC3::applySFM(cv::Mat& frame, cv::Mat initMask,
         cv::Mat out;
         _image.copyTo(out);
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
-        cv::imshow(WINDOW_NAME, out);
+        cv::imshow(WINDOW, out);
         cv::waitKey(1);
 
 #ifdef SAVE_AS_VIDEO
@@ -698,7 +698,7 @@ void RegBasedContoursC3::calcF()
             _meanExt = _sumExt / _cntExt;
         }
 
-        // calculate speed function
+        // calculate speed WINDOW
         cv::Vec3f Ix = _frame.at<cv::Vec3f>(y, x);
         float Fi = 0.f;
 
@@ -733,7 +733,7 @@ void RegBasedContoursC3::calcF()
 
 
     // dphidt = F./max(abs(F)) + alpha*curvature;
-    // extra loop to normalize speed function and calc curvature
+    // extra loop to normalize speed WINDOW and calc curvature
     for (_lz_it = _lz.begin(); _lz_it != _lz.end(); _lz_it++)
     {
         int y = _lz_it->y, x = _lz_it->x;

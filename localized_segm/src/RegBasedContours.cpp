@@ -66,7 +66,7 @@ void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat initMask,
         cv::Mat out;
         _image.copyTo(out);
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
-        cv::imshow(WINDOW_NAME, out);
+        cv::imshow(WINDOW, out);
         cv::waitKey(1);
 
 #ifdef SAVE_AS_VIDEO
@@ -184,7 +184,7 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
                 meanExt /= sumExt;
             }
 
-            // calculate speed function
+            // calculate speed WINDOW
             float Ix = frame.at<float>(y, x);
             float Fi = 0.f;
 
@@ -211,7 +211,7 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         }
 
         // dphidt = F./max(abs(F)) + alpha*curvature;
-        // extra loop to normalize speed function and calculate curvature
+        // extra loop to normalize speed WINDOW and calculate curvature
         for (int i = 0; i < narrow.size(); i++)
         {
             int y = (int) narrow[i][0], x = (int) narrow[i][1];
@@ -277,7 +277,7 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi,
         cv::Mat out;
         image.copyTo(out);
         cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
-        cv::imshow(WINDOW_NAME, out);
+        cv::imshow(WINDOW, out);
         cv::waitKey(1);
 //        std::cout << "its: " << its << std::endl;
 #endif
@@ -962,7 +962,7 @@ void RegBasedContours::calcF()
             _meanExt = _sumExt / _cntExt;
         }
 
-        // calculate speed function
+        // calculate speed WINDOW
         float Ix = _frame.at<float>(y, x);
         float Fi = 0.f;
 
@@ -990,7 +990,7 @@ void RegBasedContours::calcF()
 
 
     // dphidt = F./max(abs(F)) + alpha*curvature;
-    // extra loop to normalize speed function and calc curvature
+    // extra loop to normalize speed WINDOW and calc curvature
     for (_lz_it = _lz.begin(); _lz_it != _lz.end(); _lz_it++)
     {
         int y = _lz_it->y, x = _lz_it->x;

@@ -7,7 +7,7 @@
 #include <exception>
 #include <list>
 
-#define WINDOW_NAME "Image"
+#define WINDOW "Contour Evolution"
 #define CHAN_VESE 0
 #define YEZZI 1
 

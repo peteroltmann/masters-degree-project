@@ -82,7 +82,7 @@ int main(int argc, char** argv)
         cv::resize(mask, mask, cv::Size(mask.cols/2, mask.rows/2));
     }
 
-    namedWindow(WINDOW_NAME, WINDOW_AUTOSIZE);
+    namedWindow(WINDOW, WINDOW_AUTOSIZE);
 
     RegBasedContours segm;
 
@@ -106,8 +106,8 @@ int main(int argc, char** argv)
         cv::resize(segm._phi, segm._phi, cv::Size(frame.cols*2, frame.rows*2));
     }
 
-    cv::waitKey();
     std::cout << "Done. Press key to show segmentation image." << std::endl;
+    cv::waitKey();
 
     // get rid of eventual blobs
     cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
@@ -118,7 +118,7 @@ int main(int argc, char** argv)
     // show segmentation image
     Mat seg = Mat::zeros(frame.size(), CV_8U);
     cv::drawContours(seg, contours, -1, 255, CV_FILLED);
-    imshow(WINDOW_NAME, seg);
+    imshow(WINDOW, seg);
 
 //    cv::FileStorage fs2("../templ.yml", cv::FileStorage::WRITE);
 //    cv::Mat templ(frame.size(), CV_8U, cv::Scalar(0));

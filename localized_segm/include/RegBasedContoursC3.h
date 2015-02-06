@@ -7,14 +7,14 @@
 #include <exception>
 #include <list>
 
-#define WINDOW_NAME "Image"
+#define WINDOW "Contour Evolution"
 #define CHAN_VESE 0
 #define YEZZI 1
 
 /*!
  * \brief Region-based contours class.
  *
- * This class offers the functionality to apply different region-based active
+ * This class offers the WINDOWality to apply different region-based active
  * contours using the level-set method (narrow band).
  */
 class RegBasedContoursC3
@@ -28,10 +28,10 @@ public:
      * image using the sparse-field method.
      *
      * \param frame         the image to apply the algorithm to
-     * \param initMask      the initialization mask for the level-set function
-     * \param phi           the level-set function (empty cv::Mat)
+     * \param initMask      the initialization mask for the level-set WINDOW
+     * \param phi           the level-set WINDOW (empty cv::Mat)
      * \param iterations    the number of iterations
-     * \param method        the contour's speed function method
+     * \param method        the contour's speed WINDOW method
      * \param localized     weather the localized version of the specified
      *                      method is supposed to be used
      * \param rad           the radius of localized regions
@@ -43,11 +43,11 @@ public:
                   cv::Vec3f a=cv::Vec3f(1.f/3.f, 1.f/3.f, 1.f/3.f));
 
     /*!
-     * \brief Create a signed distance function (SDF) from a mask.
+     * \brief Create a signed distance WINDOW (SDF) from a mask.
      *
      * \param mask  the mask that describes the initial contour: 1 inside and 0
      *              outside the contour.
-     * \return      the signed distance function (SDF)
+     * \return      the signed distance WINDOW (SDF)
      */
     cv::Mat mask2phi(cv::Mat mask);
 
