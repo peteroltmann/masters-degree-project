@@ -9,17 +9,8 @@
 #include "StateParams.h"
 #include "Histogram.h"
 #include "FourierDescriptor.h"
-
-#define WHITE cv::Scalar(255, 255, 255)
-#define BLUE cv::Scalar(255, 0, 0)
-#define GREEN cv::Scalar(0, 255, 0)
-#define RED cv::Scalar(0, 0, 255)
-
-#define WINDOW_NAME "Image"
-#define WINDOW_FRAME_NAME "Frame"
-#define WINDOW_TEMPALTE_NAME "Template"
-#define WINDOW_RECONSTR_NAME "Reconstructed"
-#define WINDOW_RECONSTR_TEMPL_NAME "Reconstructed Template"
+#include "Selector.h"
+#include "Constants.h"
 
 #define TEXT_POS cv::Point(10, 20)
 
@@ -38,6 +29,7 @@ int main(int argc, char *argv[])
     int num_fourier;
     float fd_threshold;
     int num_free_frames;
+    bool select_start_rect;
     cv::Rect start_rect;
     std::string input_path;
     std::vector<std::string> char_views;
@@ -45,6 +37,8 @@ int main(int argc, char *argv[])
     double fps;
     std::string save_img_path;
     std::string matlab_file_path;
+
+    // TODO: contour evolution parameters
 
     cv::FileStorage fs(param_path, cv::FileStorage::READ);
     if (!fs.isOpened())
@@ -61,6 +55,7 @@ int main(int argc, char *argv[])
     fs["num_fourier"] >> num_fourier;
     fs["fd_threshold"] >> fd_threshold;
     fs["num_free_frames"] >> num_free_frames;
+    fs["select_start_rect"] >> select_start_rect;
     fs["start_rect"] >> start_rect;
     fs["input_path"] >> input_path;
     fs["char_views"] >> char_views;
@@ -109,9 +104,11 @@ int main(int argc, char *argv[])
         num_free_frames = 10;
     }
 
+    // select_start_rect: bool, nothing to check
 
-    if (start_rect.width <= 0 || start_rect.height <= 0 ||
-        start_rect.x < 0 || start_rect.y < 0)
+    if (!select_start_rect && (
+         start_rect.width <= 0 || start_rect.height <= 0 ||
+         start_rect.x     <  0 || start_rect.y      <  0 ))
     {
         std::cerr << "Invalid size for starting rectangle: "
                   << start_rect << std::endl;
@@ -152,7 +149,8 @@ int main(int argc, char *argv[])
     int last_match_idx = 0;
     std::vector<FourierDescriptor> char_views_fd(char_views.size() + 1);
 
-    RegBasedContours segm; // object providing the contour evolution algorithm
+    // object providing the contour evolution algorithm
+    RegBasedContours segm;
 
     // init particle filter
     ParticleFilter pf(num_particles);
@@ -213,6 +211,28 @@ int main(int argc, char *argv[])
         // to determine the template contour
         if (templ.empty())
         {
+            // select starting rectangle
+            if (select_start_rect)
+            {
+                // displace frame for selection
+                std::cout << "Please select a starting rectangle in the frame. "
+                             "Then press any key to start." << std::endl;
+
+                Selector selector(WINDOW_NAME, frame); // handle mouse callback
+                cv::imshow(WINDOW_NAME, frame);
+                while (!selector.is_valid())
+                {
+                    cv::waitKey();
+                    if (!selector.is_valid())
+                    {
+                        std::cerr << "Invalid selection: "
+                                  << selector.get_selection() << std::endl;
+                    }
+                }
+                start_rect = selector.get_selection();
+
+            }
+
             // check start_rect size
             if (start_rect.x + start_rect.width  > frame.cols ||
                 start_rect.y + start_rect.height > frame.rows)
@@ -222,6 +242,11 @@ int main(int argc, char *argv[])
                           << std::endl;
                 return EXIT_FAILURE;
             }
+
+            std::cout << boost::format("Starting with rectangle: "
+                                       "[%3d, %3d, %3d, %3d]")
+                         % start_rect.x % start_rect.y % start_rect.width
+                         % start_rect.height << std::endl;
 
             // create mask and evolve contour
             cv::Mat start_mask = cv::Mat::zeros(frame.size(), CV_8U);
@@ -371,8 +396,6 @@ int main(int argc, char *argv[])
             cv::Mat_<uchar> roi(tmp, estimate_rect);
             roi.setTo(1);
             evolved_repl.set_mask(tmp);
-
-            // TODO: resize repl roi to pf.estimate scaling
         }
 
         // =====================================================================

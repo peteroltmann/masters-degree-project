@@ -26,8 +26,10 @@ fd_threshold: 0.015
 # number of frames to be free (not occluded) for template replacement
 num_free_frames: 20
 
-# starting rectangle for contour evolution on first frame
+# 1: select starting rectangle with mouse, 0: use specified
+select_start_rect: 0
 
+# starting rectangle for contour evolution on first frame
 # start_rect: [ 265,  10,  90,  65 ] # car
 start_rect: [  35, 150,  40,  20 ] # fish
 # start_rect: [  70, 60,   50, 100 ] # plane
@@ -50,7 +52,7 @@ char_views: ["/home/peter/Desktop/cv_fish/cv_fish_back_right_down.png",
 # output_path: "../output/out.avi"
 
 # frames per second for saved video, <= 0 or empty for taking source fps
-fps: 25.0                     
+fps: 25.0
 
 # path to output folder and filename for each frame as an image
 # format string to fill with frame number
