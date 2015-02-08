@@ -165,7 +165,7 @@ void Contour::draw(cv::Mat& window_image, cv::Scalar color)
     cv::drawContours(window_image, contours, -1, color, 1);
 }
 
-void Contour::set_mask(const cv::Mat& mask)
+void Contour::set_mask(const cv::Mat_<uchar>& mask)
 {
     mask.copyTo(this->mask);
     set_roi(bounding_rect());

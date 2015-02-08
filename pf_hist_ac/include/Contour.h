@@ -76,7 +76,7 @@ public:
      * \brief Set the contour mask by copyiing it.
      * \param mask the contour mask to be set
      */
-    void set_mask(const cv::Mat& mask);
+    void set_mask(const cv::Mat_<uchar>& mask);
 
     /*!
      * \brief Set the contour ROI.
