@@ -77,14 +77,14 @@ float Histogram::match(Histogram& hist2)
 {
     if (data.type() != CV_32F && hist2.data.type() != CV_32F)
     {
-        std::cout << "Histogram types != CV_32F" << std::endl;
-        return EXIT_FAILURE;
+        throw cv::Exception(-1, "Histogram types != CV_32F", "Histogram::match",
+                            "Histogram.cpp", 0);
     }
 
-    if (data.rows != hist2.data.rows && data.cols == 1 && hist2.data.cols == 1)
+    if (data.total() != hist2.data.total())
     {
-        std::cout << "Histogram sizes are not equal" << std::endl;
-        return EXIT_FAILURE;
+        throw cv::Exception(-1, "Histogram sizes are not equal",
+                            "Histogram::match()", "Histogram.cpp", 0);
     }
 
     float bc = 0;
