@@ -26,6 +26,7 @@ int ContourEvolution::run(std::string param_path)
     float alpha;
     cv::Vec3f a;
     bool select_start_rect;
+    bool no_sfm;
 
     // takes the data type's default value, if not set in file
     cv::FileStorage fs(param_path, cv::FileStorage::READ);
@@ -46,6 +47,7 @@ int ContourEvolution::run(std::string param_path)
     fs["alpha"] >> alpha;
     fs["a"] >> a;
     fs["select_start_rect"] >> select_start_rect;
+    fs["no_sfm"] >> no_sfm;
 
     Mat frame;
     frame = imread(image_path, CV_LOAD_IMAGE_COLOR);
@@ -122,8 +124,11 @@ int ContourEvolution::run(std::string param_path)
     t1 = cv::getTickCount();
 #endif
 
-    segm.applySFM(frame, mask, iterations);
-//    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha, a);
+    if (no_sfm)
+        segm.apply(frame, mask, iterations);
+    else
+        segm.applySFM(frame, mask, iterations);
+
 
 #ifdef TIME_MEASUREMENT_TOTAL
     t2 = cv::getTickCount();

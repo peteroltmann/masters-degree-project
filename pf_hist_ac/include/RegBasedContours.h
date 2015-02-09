@@ -70,9 +70,7 @@ public:
      * \param rad           the radius of localized regions
      * \param alpha         the curvature weight (higher -> smoother)
      */
-    void apply(cv::Mat frame, cv::Mat init_mask, cv::Mat& phi, int iterations,
-               Method method=CHAN_VESE, bool localized=false, int rad=18,
-               float alpha=.2f);
+    void apply(cv::Mat frame, cv::Mat init_mask, int iterations);
 
     /*!
      * \brief Sussman-reinitialization to retain the level-set function to b a

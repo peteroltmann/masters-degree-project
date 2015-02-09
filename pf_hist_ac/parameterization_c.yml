@@ -39,3 +39,6 @@ a: [0.9, 0.1, 0.1]                      # weighting for each channel (only C3)
 
 # 1: select starting rectangle with mouse, 0: use specified
 select_start_rect: 1
+
+# 1: do not use sparse-filed method, use narrow-band method (slower)
+no_sfm: 0

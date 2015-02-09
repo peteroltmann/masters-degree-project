@@ -80,9 +80,7 @@ void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat init_mask,
 #endif
 }
 
-void RegBasedContours::apply(cv::Mat frame, cv::Mat init_mask, cv::Mat& phi,
-                             int iterations, Method method, bool localized,
-                             int rad, float alpha)
+void RegBasedContours::apply(cv::Mat frame, cv::Mat init_mask, int iterations)
 {
 #ifdef SHOW_CONTOUR_EVOLUTION
     cv::Mat image;
