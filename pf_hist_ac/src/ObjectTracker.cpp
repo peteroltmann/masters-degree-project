@@ -30,6 +30,7 @@ int ObjectTracker::run(std::string param_path)
     int num_particles;
     int num_iterations;
     float sigma;
+    float bc_threshold;
     int num_fourier;
     float fd_threshold;
     bool select_start_rect;
@@ -55,6 +56,7 @@ int ObjectTracker::run(std::string param_path)
     fs["num_particles"] >> num_particles;
     fs["num_iterations"] >> num_iterations;
     fs["sigma"] >> sigma;
+    fs["bc_threshold"] >> bc_threshold;
     fs["num_fourier"] >> num_fourier;
     fs["fd_threshold"] >> fd_threshold;
     fs["select_start_rect"] >> select_start_rect;
@@ -85,6 +87,12 @@ int ObjectTracker::run(std::string param_path)
         std::cout << "invalid value for 'sigma', '20.0' used instead"
                   << std::endl;
         sigma = 20.f;
+    }
+    if (bc_threshold <= 0.f || bc_threshold >= 1.f)
+    {
+        std::cout << "invalid value for 'bc_threshold', '0.25' used instead"
+                  << std::endl;
+        bc_threshold = .25f;
     }
     if (num_fourier < 1)
     {
@@ -384,8 +392,7 @@ int ObjectTracker::run(std::string param_path)
         }
 */
 
-        // TODO: bc_threshold
-        if (bc_templ >= .25f) // lost object after contour evolution
+        if (bc_templ >= bc_threshold) // lost object after contour evolution
         {
             // create replacement "contour": use PF estimate
             cv::Mat_<uchar> tmp(frame.size(), 0);
