@@ -140,8 +140,8 @@ float Contour::match(Contour& contour2, int method)
                 break;
             }
 
-//            result += fabs(ama - amb); // TODO: abs? log?
-            result += (ama - amb)*(ama - amb);
+            // result += fabs(ama - amb); // <-- opencv
+            result += (ama - amb)*(ama - amb); // use euclidean distance
         }
     }
 

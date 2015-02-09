@@ -49,7 +49,6 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask)
     cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
     inOut.setTo(0);
 
-    // TODO: multipe contours: failure? how to match?
     // take contour with most points
     if (contours.size() == 1)
         cp = contours[0];
@@ -67,49 +66,7 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask)
         cp = contours[max_idx];
     }
 
-//    std::reverse(cp.begin(), cp.end()); // clockwise order
     num_points = cp.size();
-
-/*    // create sampled complex vector
-    int num_samples = 64;
-    float arclen = cv::arcLength(cp, true);
-    float delta = arclen / num_samples;
-
-    int i = 0;
-    float sub_arclen = 0.f;
-    float sub_arclen_next = 0.f;
-    U.push_back(cv::Vec2f(cp[0].x, cp[0].y));
-
-    while(i < cp.size()-1)
-    {
-        while (sub_arclen_next <= delta && i < cp.size()-1)
-        {
-            sub_arclen_next += cv::norm(cp[i+1] - cp[i]);
-            if (sub_arclen_next <= delta)
-            {
-                sub_arclen = sub_arclen_next;
-                i++;
-            }
-        }
-
-        if (i >= cp.size()-1)
-            break;
-
-        float d = delta - sub_arclen;
-        cv::Vec2f p = cv::Vec2f(cp[i].x, cp[i].y);
-        cv::Vec2f v = cv::Vec2f(cp[i+1].x, cp[i+1].y);
-        v = v - p;
-        v = v / cv::norm(v);
-        p = p + d*v;
-
-        U.push_back(p);
-
-        sub_arclen_next = cv::norm(cv::Vec2f(cp[i+1].x, cp[i+1].y) - p);
-        i++;
-    }
-//    std::cout << U.size() << std::endl;
-    num_points = U.total();
-//*/
 
     // create complex vector
     for (int i = 0; i < cp.size(); i++)

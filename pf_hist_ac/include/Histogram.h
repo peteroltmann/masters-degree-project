@@ -21,8 +21,6 @@ public:
      * \brief Calculate the histogram of the given image in the specified color
      * space.
      *
-     * TODO: specify color bins and weighting factors for color spaces
-     *
      * \param img   the image whose histogram is to be calculated.
      * \param type  color space (GRAY, RGB, BGR, HSV)
      * \param mask  optional mask

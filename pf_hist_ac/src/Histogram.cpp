@@ -134,7 +134,7 @@ cv::Mat Histogram::draw_3(const cv::Mat& frame, int type, const cv::Mat& mask)
         color2 = cv::Scalar(0, 255, 0);
         color3 = cv::Scalar(0, 0, 255);
     }
-    else if (type == HSV) // TODO
+    else if (type == HSV)
     {
         color1 = cv::Scalar(0, 0, 255);
         color2 = cv::Scalar(0, 255, 0);

@@ -51,11 +51,9 @@ public:
      * bug in version 2.4.9 that causes the function to always return zero.
      *
      * \param contour2  the contour to be matched with.
-     * \param method    comparison method: <tt>CV_CONTOURS_MATCH_I1</tt> ,
-     *                  <tt>CV_CONTOURS_MATCH_I2</tt> or
-     *                  <tt>CV_CONTOURS_MATCH_I3</tt>
+     * \param method    comparison method: <tt>CV_CONTOURS_MATCH_I1</tt> or
+     *                  <tt>CV_CONTOURS_MATCH_I2</tt>
      *
-     * TODO:
      * Only CV_CONTOURS_MATCH_I1 and 2 supported right now. Experimentally
      * method "4"
      *
