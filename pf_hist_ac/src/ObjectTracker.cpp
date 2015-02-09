@@ -32,7 +32,6 @@ int ObjectTracker::run(std::string param_path)
     float sigma;
     int num_fourier;
     float fd_threshold;
-    int num_free_frames;
     bool select_start_rect;
     cv::Rect start_rect;
     std::string input_path;
@@ -58,7 +57,6 @@ int ObjectTracker::run(std::string param_path)
     fs["sigma"] >> sigma;
     fs["num_fourier"] >> num_fourier;
     fs["fd_threshold"] >> fd_threshold;
-    fs["num_free_frames"] >> num_free_frames;
     fs["select_start_rect"] >> select_start_rect;
     fs["start_rect"] >> start_rect;
     fs["input_path"] >> input_path;
@@ -100,12 +98,6 @@ int ObjectTracker::run(std::string param_path)
         std::cout << "invalid value for 'fd_threshold', '0.01' used instead"
                   << std::endl;
         fd_threshold = .01f;
-    }
-    if (num_free_frames <= 0)
-    {
-        std::cout << "invalid value for 'num_free_frames', '10' used instead"
-                  << std::endl;
-        num_free_frames = 10;
     }
 
     // select_start_rect: bool, nothing to check

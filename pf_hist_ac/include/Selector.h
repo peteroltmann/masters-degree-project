@@ -20,15 +20,17 @@ private:
 public:
     /*!
      * \brief Construct a Selector.
-     * \param window    name of observed window
+     * \param window    name of observed window. Has to be created with
+     *                  <tt>cv::namedWindow()</tt>. Unless, the mouse callback
+     *                  can not be set.
      * \param frame     the frame used for selection
      */
     Selector(const std::string window, const cv::Mat& frame);
 
     virtual ~Selector(); //!< The default destructor
-    bool is_valid() const; //! \return weather the selection is valid or not
-    bool is_selecting() const; //! \return weather the selection is created
-    cv::Rect get_selection() const; //! \return the selection
+    bool is_valid() const; //!< \return weather the selection is valid or not
+    bool is_selecting() const; //!< \return weather the selection is created
+    cv::Rect get_selection() const; //!< \return the selection
 
 private:
     //!< Mouse callback for an OpenCV window.

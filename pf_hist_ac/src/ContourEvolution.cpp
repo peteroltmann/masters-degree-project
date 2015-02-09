@@ -1,6 +1,7 @@
 #include "ContourEvolution.h"
 
 #include "RegBasedContours.h"
+#include "Selector.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -24,6 +25,7 @@ int ContourEvolution::run(std::string param_path)
     int rad;
     float alpha;
     cv::Vec3f a;
+    bool select_start_rect;
 
     // takes the data type's default value, if not set in file
     cv::FileStorage fs(param_path, cv::FileStorage::READ);
@@ -35,11 +37,13 @@ int ContourEvolution::run(std::string param_path)
     fs["rad"] >> rad;
     fs["alpha"] >> alpha;
     fs["a"] >> a;
+    fs["select_start_rect"] >> select_start_rect;
 
-    // check parameters
     Mat frame;
     frame = imread(imagePath, CV_LOAD_IMAGE_COLOR);
+    namedWindow(WINDOW, WINDOW_AUTOSIZE);
 
+    // check parameters
     if (frame.empty())
     {
         std::cerr << "Error loading image: '" << imagePath << "'" << std::endl;
@@ -75,6 +79,22 @@ int ContourEvolution::run(std::string param_path)
         a = cv::Vec3f(1.f/3.f, 1.f/3.f, 1.f/3.f);
     }
 
+    if (select_start_rect)
+    {
+        Selector selector(WINDOW, frame);
+        cv::imshow(WINDOW, frame);
+        while (!selector.is_valid())
+        {
+            cv::waitKey();
+            if (!selector.is_valid())
+            {
+                std::cerr << "Invalid selection: " << selector.get_selection()
+                          << std::endl;
+            }
+        }
+        maskRect = selector.get_selection();
+    }
+
     cv::cvtColor(frame, frame, CV_RGB2GRAY);
     Mat mask = Mat::zeros(frame.size(), CV_8U);
     Mat roi(mask, maskRect);
@@ -86,8 +106,6 @@ int ContourEvolution::run(std::string param_path)
         cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
         cv::resize(mask, mask, cv::Size(mask.cols/2, mask.rows/2));
     }
-
-    namedWindow(WINDOW, WINDOW_AUTOSIZE);
 
     RegBasedContours segm;
 

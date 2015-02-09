@@ -54,8 +54,7 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
-    if (cmd_option_exists(begin, end, "-c"))
-        ce_only = true;
+    ce_only = cmd_option_exists(begin, end, "-c");
 
     char* arg_f = get_cmd_option(begin, end, "-f");
     if (arg_f)
