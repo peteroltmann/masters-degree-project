@@ -278,8 +278,6 @@ int ObjectTracker::run(std::string param_path)
                 }
                 view_mask.setTo(1, view_mask);
 
-                // TODO: resize char views to frame size
-
                 char_views_fd[i+1].init(view_mask);
                 char_views_fd[i+1].low_pass(num_fourier);
             }
@@ -363,7 +361,7 @@ int ObjectTracker::run(std::string param_path)
         float hu_templ = evolved.match(templ);
         float fd_templ = evolved_fd.match(templ_fd);
 
-        // matchin char_views
+        // matching char_views
         std::vector<float> fd_char_views(char_views_fd.size());
         for (int i = 0; i < char_views_fd.size(); i++)
             fd_char_views[i] = evolved_fd.match(char_views_fd[i]);
