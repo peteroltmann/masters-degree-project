@@ -41,14 +41,16 @@ int ObjectTracker::run(std::string param_path)
     double fps;
     std::string save_img_path;
     std::string matlab_file_path;
-
-    // TODO: contour evolution parameters
+    int method;
+    bool localized;
+    int rad;
+    float alpha;
 
     cv::FileStorage fs(param_path, cv::FileStorage::READ);
     if (!fs.isOpened())
     {
         std::cerr << "Error opening '" << param_path << "'" << std::endl;
-        std::cerr << "Specify parameterization file as first argument or use "
+        std::cerr << "Specify parameterization file as argument or use "
                      "default: '../parameterization.yml'" << std::endl;
         return EXIT_FAILURE;
     }
@@ -67,6 +69,10 @@ int ObjectTracker::run(std::string param_path)
     fs["fps"] >> fps;
     fs["save_img_path"] >> save_img_path;
     fs["matlab_file_path"]  >> matlab_file_path;
+    fs["method"] >> method;
+    fs["localized"] >> localized;
+    fs["rad"] >> rad;
+    fs["alpha"] >> alpha;
 
     if (num_particles <= 0)
     {
@@ -126,6 +132,18 @@ int ObjectTracker::run(std::string param_path)
     // save_img_path: on saving image sequence
     // matlab_file_path: on matlab output
 
+    if (method != CHAN_VESE && method != YEZZI)
+    {
+        std::cerr << "Invalid method: " << method << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // localized: bool, nothing to check
+    if (rad <= 0)
+        rad = 18;
+    if (alpha <= 0 || alpha >= 1)
+        alpha = .2f;
+
     // =========================================================================
     // = DECLARATION AND INITIALIZATION                                        =
     // =========================================================================
@@ -154,7 +172,7 @@ int ObjectTracker::run(std::string param_path)
     std::vector<FourierDescriptor> char_views_fd(char_views.size() + 1);
 
     // object providing the contour evolution algorithm
-    RegBasedContours segm;
+    RegBasedContours segm(Method(method), localized, rad, alpha);
 
     // init particle filter
     ParticleFilter pf(num_particles);
