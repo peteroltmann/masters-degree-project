@@ -8,8 +8,15 @@
 #include <list>
 
 #define WINDOW "Contour Evolution"
-#define CHAN_VESE 0
-#define YEZZI 1
+
+/*!
+ * \brief The contour's speed function method.
+ */
+enum Method
+{
+    CHAN_VESE = 0,
+    YEZZI = 1
+};
 
 /*!
  * \brief Region-based contours class.
@@ -20,7 +27,17 @@
 class RegBasedContours
 {
 public:
-    RegBasedContours(); //!< The default constructor.
+    /*!
+     * \brief RegBasedContours
+     * \param method        the contour's speed function method
+     * \param localized     weather the localized version of the specified
+     *                      method is supposed to be used
+     * \param rad           the radius of localized regions
+     * \param alpha         the curvature weight (higher -> smoother)
+     */
+    RegBasedContours(Method method=CHAN_VESE, bool localized=false, int rad=18,
+                     float alpha=.2f);
+
     virtual ~RegBasedContours(); //!< The default destructor.
 
     /*!
@@ -37,9 +54,7 @@ public:
      * \param rad           the radius of localized regions
      * \param alpha         the curvature weight (higher -> smoother)
      */
-    void applySFM(cv::Mat& frame, cv::Mat initMask, int iterations,
-                  int method=0, bool localized=false, int rad=18,
-                  float alpha=.2f);
+    void applySFM(cv::Mat& frame, cv::Mat init_mask, int iterations);
 
     /*!
      * \brief Apply a region-based active contour algorithm to the specified
@@ -55,8 +70,9 @@ public:
      * \param rad           the radius of localized regions
      * \param alpha         the curvature weight (higher -> smoother)
      */
-    void apply(cv::Mat frame, cv::Mat initMask, cv::Mat& phi, int iterations,
-               int method=1, bool localized=false, int rad=18, float alpha=.2f);
+    void apply(cv::Mat frame, cv::Mat init_mask, cv::Mat& phi, int iterations,
+               Method method=CHAN_VESE, bool localized=false, int rad=18,
+               float alpha=.2f);
 
     /*!
      * \brief Sussman-reinitialization to retain the level-set function to b a
@@ -65,7 +81,7 @@ public:
      * \param D     the function to apply the Sussman-reinitialization to
      * \param dt    the time step.
      */
-    void sussmanReinit(cv::Mat&D, float dt);
+    void sussman_reinit(cv::Mat&D, float dt);
 
     /*!
      * \brief Create a signed distance function (SDF) from a mask.
@@ -76,10 +92,38 @@ public:
      */
     cv::Mat mask2phi(cv::Mat mask);
 
-    void setFrame(cv::Mat& frame);
+    /*!
+     * \brief Set the current frame.
+     * \param frame the current frame
+     */
+    void set_frame(cv::Mat& frame);
+
+    /*!
+     * \brief Set parameters of the sparse-field method.
+     *
+     * \param method        the contour's speed function method
+     * \param localized     weather the localized version of the specified
+     *                      method is supposed to be used
+     * \param rad           the radius of localized regions
+     * \param alpha         the curvature weight (higher -> smoother)
+     */
+    void set_params(Method method, bool localized, int rad, float alpha);
+
+    /*!
+     * \brief Initialization for the sparse-field method.
+     * \param initMask  initialization mask
+     */
     void init(cv::Mat &initMask);
+
+    /*!
+     * \brief Do one iteration step of the sparse-field method.
+     */
     void iterate();
-    void calcF();
+
+    /*!
+     * \brief Calculate the force F (sparse-field method).
+     */
+    void calc_F();
 
 private:
     /*!
@@ -92,30 +136,31 @@ private:
      * \param size      the image size for bound check
      * \return          weather the point was added
      */
-    bool pushBack(int listNo, bool tmp, cv::Point p, cv::Size size);
+    bool push_back(int listNo, bool tmp, cv::Point p, cv::Size size);
 
-    bool _localized;
-    int _method;
-    float _alpha;
-    float _rad;
+    Method method;
+    bool localized;
+    float rad;
+    float alpha;
 
-    float _sumInt;
-    float _sumExt;
-    float _cntInt;
-    float _cntExt;
-    float _meanInt;
-    float _meanExt;
+    float sum_int;
+    float sum_ext;
+    float cnt_int;
+    float cnt_ext;
+    float mean_int;
+    float mean_ext;
+
+    cv::Mat image; //!< Current original frame
+    cv::Mat frame; //!< Current frame in CV_32F
+    cv::Mat label;
+    cv::Mat F;
+    std::list<cv::Point> lz, ln1, lp1, ln2, lp2; //!< Level set lists.
+    std::list<cv::Point> sz, sn1, sp1, sn2, sp2; //!< Temporary lists.
+    std::list<cv::Point>::iterator lz_it, ln1_it, lp1_it, ln2_it, lp2_it;
+    std::list<cv::Point>::iterator sz_it, sn1_it, sp1_it, sn2_it, sp2_it;
 
 public:
-    cv::Mat _image;   //!< Current original frame
-    cv::Mat _frame; //!< Current frane in CV_32F
-    cv::Mat _phi;
-    cv::Mat _label;
-    cv::Mat _F;
-    std::list<cv::Point> _lz, _ln1, _lp1, _ln2, _lp2; //!< Level set lists.
-    std::list<cv::Point> _sz, _sn1, _sp1, _sn2, _sp2; //!< Temporary lists.
-    std::list<cv::Point>::iterator _lz_it, _ln1_it, _lp1_it, _ln2_it, _lp2_it;
-    std::list<cv::Point>::iterator _sz_it, _sn1_it, _sp1_it, _sn2_it, _sp2_it;
+    cv::Mat phi;
 };
 
 #endif // LOCALIZED_CONTOURS_H

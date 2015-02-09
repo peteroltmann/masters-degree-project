@@ -46,7 +46,7 @@ void Contour::transform_affine(cv::Mat_<float>& state)
 
 void Contour::evolve(RegBasedContours& segm, cv::Mat& frame, int iterations)
 {
-    segm.setFrame(frame);
+    segm.set_frame(frame);
     segm.init(mask);
 
     for (int its = 0; its < iterations; its++)
@@ -56,7 +56,7 @@ void Contour::evolve(RegBasedContours& segm, cv::Mat& frame, int iterations)
 
     // get rid of eventual blobs
     cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
-    inOut.setTo(255, segm._phi <= 0);
+    inOut.setTo(255, segm.phi <= 0);
     std::vector< std::vector<cv::Point> > contours;
     cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 

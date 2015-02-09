@@ -1,34 +1,34 @@
 %YAML:1.0
-# imagePath: "../input/airplane.jpg"        # maskRect: [ 122, 110, 112, 112 ]
-# maskRect: [ 122, 110, 112, 112 ]        # [x, y, width, height]
-# imagePath: "../input/monkey.png"        # maskRect: [ 88, 36, 139, 177 ]
-# maskRect: [ 88, 36, 139, 177 ]
-# imagePath: "../input/hand.jpg"          # maskRect: [ 310, 220, 80, 60 ]
-# maskRect: [ 310, 220, 80, 60 ]
+# image_path: "../input/airplane.jpg"      	# mask_rect: [ 122, 110, 112, 112 ]
+# mask_rect: [ 122, 110, 112, 112 ]        	# [x, y, width, height]
+# image_path: "../input/monkey.png"        	# mask_rect: [ 88, 36, 139, 177 ]
+# mask_rect: [ 88, 36, 139, 177 ]
+# image_path: "../input/hand.jpg"          	# mask_rect: [ 310, 220, 80, 60 ]
+# mask_rect: [ 310, 220, 80, 60 ]
 
-# imagePath: "../input/car.png"
-# maskRect: [ 265, 10, 90, 65 ]
+# image_path: "../input/car.png"
+# mask_rect: [ 265, 10, 90, 65 ]
 
-# imagePath: "../../pf_hist_ac/input/palau2_gray_cropped/palau2_frames_0000.png"
-# maskRect: [ 35, 150, 40, 20 ]
+# image_path: "../../pf_hist_ac/input/palau2_gray_cropped/palau2_frames_0000.png"
+# mask_rect: [ 35, 150, 40, 20 ]
 
-# imagePath: "../input/opel-gt.jpg"
-# maskRect: [ 130, 90, 35, 40 ]
+# image_path: "../input/opel-gt.jpg"
+# mask_rect: [ 130, 90, 35, 40 ]
 
-# imagePath: "../input/hand_000.png"
-# maskRect: [ 130, 90, 35, 40 ]
+# image_path: "../input/hand_000.png"
+# mask_rect: [ 130, 90, 35, 40 ]
 
-# imagePath: "../input/black_004.png"
-# maskRect: [ 145, 100, 50, 25 ]
+# image_path: "../input/black_004.png"
+# mask_rect: [ 145, 100, 50, 25 ]
 
-imagePath: "../input/big_1_3.png"
-maskRect: [  70, 60,   50, 100 ]
+image_path: "../input/big_1_3.png"
+mask_rect: [  70, 60,   50, 100 ]
 
-# imagePath: "C:\\Users\\Peter\\Desktop\\OriginalVideos\\walking_2.png"
-# maskRect: [ 50, 10, 50, 30 ]
+# image_path: "C:\\Users\\Peter\\Desktop\\OriginalVideos\\walking_2.png"
+# mask_rect: [ 50, 10, 50, 30 ]
 
-# imagePath: "C:\\Users\\Peter\\Desktop\\OriginalVideos\\PlaneSequence\\frame_00013451.pgm"
-# maskRect: [ 160, 340, 10, 20 ]
+# image_path: "C:\\Users\\Peter\\Desktop\\OriginalVideos\\PlaneSequence\\frame_00013451.pgm"
+# mask_rect: [ 160, 340, 10, 20 ]
 
 iterations: 450
 method: 0                               # 0: CHAN_VESE, 1: YEZZI

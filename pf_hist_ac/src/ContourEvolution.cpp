@@ -17,8 +17,8 @@ ContourEvolution::~ContourEvolution() {}
 
 int ContourEvolution::run(std::string param_path)
 {
-    std::string imagePath;
-    Rect maskRect;
+    std::string image_path;
+    Rect mask_rect;
     int iterations;
     int method;
     bool localized;
@@ -29,8 +29,16 @@ int ContourEvolution::run(std::string param_path)
 
     // takes the data type's default value, if not set in file
     cv::FileStorage fs(param_path, cv::FileStorage::READ);
-    fs["imagePath"] >> imagePath;
-    fs["maskRect"] >> maskRect;
+    if (!fs.isOpened())
+    {
+        std::cerr << "Error opening '" << param_path << "'" << std::endl;
+        std::cerr << "Specify parameterization file as argument or use "
+                     "default: '../parameterization.yml'" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    fs["image_path"] >> image_path;
+    fs["mask_rect"] >> mask_rect;
     fs["iterations"] >> iterations;
     fs["method"] >> method;
     fs["localized"] >> localized;
@@ -40,16 +48,16 @@ int ContourEvolution::run(std::string param_path)
     fs["select_start_rect"] >> select_start_rect;
 
     Mat frame;
-    frame = imread(imagePath, CV_LOAD_IMAGE_COLOR);
+    frame = imread(image_path, CV_LOAD_IMAGE_COLOR);
     namedWindow(WINDOW, WINDOW_AUTOSIZE);
 
     // check parameters
     if (frame.empty())
     {
-        std::cerr << "Error loading image: '" << imagePath << "'" << std::endl;
+        std::cerr << "Error loading image: '" << image_path << "'" << std::endl;
         return EXIT_FAILURE;
     }
-    if (maskRect == Rect(0, 0, 0, 0))
+    if (mask_rect == Rect(0, 0, 0, 0))
     {
         std::cerr << "No initialisation mask given" << std::endl;
         return EXIT_FAILURE;
@@ -70,7 +78,7 @@ int ContourEvolution::run(std::string param_path)
         // default radius dependent on frame size
         rad = std::round((frame.rows+frame.cols)/(2*8));
     }
-    if (alpha <= 0)
+    if (alpha <= 0 || alpha >= 1)
     {
         alpha = .2f;
     }
@@ -92,12 +100,12 @@ int ContourEvolution::run(std::string param_path)
                           << std::endl;
             }
         }
-        maskRect = selector.get_selection();
+        mask_rect = selector.get_selection();
     }
 
     cv::cvtColor(frame, frame, CV_RGB2GRAY);
     Mat mask = Mat::zeros(frame.size(), CV_8U);
-    Mat roi(mask, maskRect);
+    Mat roi(mask, mask_rect);
     roi = Scalar::all(1);
 
     if (localized)
@@ -107,14 +115,14 @@ int ContourEvolution::run(std::string param_path)
         cv::resize(mask, mask, cv::Size(mask.cols/2, mask.rows/2));
     }
 
-    RegBasedContours segm;
+    RegBasedContours segm(Method(method), localized, rad, alpha);
 
 #ifdef TIME_MEASUREMENT_TOTAL
     int64 t1, t2;
     t1 = cv::getTickCount();
 #endif
 
-    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha);
+    segm.applySFM(frame, mask, iterations);
 //    segm.applySFM(frame, mask, iterations, method, localized, rad, alpha, a);
 
 #ifdef TIME_MEASUREMENT_TOTAL
@@ -126,7 +134,7 @@ int ContourEvolution::run(std::string param_path)
     if (localized)
     {
         // make image smaller for faster computation
-        cv::resize(segm._phi, segm._phi, cv::Size(frame.cols*2, frame.rows*2));
+        cv::resize(segm.phi, segm.phi, cv::Size(frame.cols*2, frame.rows*2));
     }
 
     std::cout << "Done. Press key to show segmentation image." << std::endl;
@@ -134,7 +142,7 @@ int ContourEvolution::run(std::string param_path)
 
     // get rid of eventual blobs
     cv::Mat inOut = cv::Mat::zeros(frame.rows, frame.cols, CV_8U);
-    inOut.setTo(255, segm._phi <= 0);
+    inOut.setTo(255, segm.phi <= 0);
     std::vector< std::vector<cv::Point> > contours;
     cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
