@@ -27,6 +27,24 @@ void Histogram::calc_hist(cv::Mat& img, int type, const cv::Mat& mask)
     normalize();
 }
 
+void Histogram::adapt(const Histogram& hist2, float a)
+{
+    if (data.type() != hist2.data.type())
+    {
+        throw cv::Exception(-1, "Histogram types are not equal",
+                            "Histogram::match", "Histogram.cpp", 0);
+    }
+
+    if (data.total() != hist2.data.total())
+    {
+        throw cv::Exception(-1, "Histogram sizes are not equal",
+                            "Histogram::match()", "Histogram.cpp", 0);
+    }
+
+    data = (1-a) * data + a * hist2.data;
+    normalize();
+}
+
 void Histogram::calc_hist_1(cv::Mat& img, const cv::Mat& mask)
 {
     static const int channels[] = {0};

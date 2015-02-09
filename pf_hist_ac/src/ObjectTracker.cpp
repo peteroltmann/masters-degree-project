@@ -31,6 +31,8 @@ int ObjectTracker::run(std::string param_path)
     int num_iterations;
     float sigma;
     float bc_threshold;
+    float bc_threshold_adapt;
+    float a;
     int num_fourier;
     float fd_threshold;
     bool select_start_rect;
@@ -59,6 +61,8 @@ int ObjectTracker::run(std::string param_path)
     fs["num_iterations"] >> num_iterations;
     fs["sigma"] >> sigma;
     fs["bc_threshold"] >> bc_threshold;
+    fs["bc_threshold_adapt"] >> bc_threshold_adapt;
+    fs["a"] >> a;
     fs["num_fourier"] >> num_fourier;
     fs["fd_threshold"] >> fd_threshold;
     fs["select_start_rect"] >> select_start_rect;
@@ -80,14 +84,12 @@ int ObjectTracker::run(std::string param_path)
                   << std::endl;
         num_particles = 100;
     }
-
     if (num_iterations <= 0)
     {
         std::cout << "invalid value for 'num_iterations', '10' used instead"
                   << std::endl;
         num_particles = 10;
     }
-
     if (sigma <= 0.f)
     {
         std::cout << "invalid value for 'sigma', '20.0' used instead"
@@ -100,13 +102,22 @@ int ObjectTracker::run(std::string param_path)
                   << std::endl;
         bc_threshold = .25f;
     }
+    if (bc_threshold_adapt < 0.f || bc_threshold_adapt > 1.f)
+    {
+        std::cout << "invalid value for 'bc_threshold_adapt', '0' used instead"
+                  << std::endl;
+        bc_threshold_adapt = 0.f;
+    }
+    if (a <= 0.f || a > 1.f)
+    {
+        a = .1f;
+    }
     if (num_fourier < 1)
     {
         std::cout << "invalid value for 'num_fourier', '10' used instead"
                   << std::endl;
         num_fourier = 10;
     }
-
     if (fd_threshold <= 0.f)
     {
         std::cout << "invalid value for 'fd_threshold', '0.01' used instead"
@@ -394,19 +405,11 @@ int ObjectTracker::run(std::string param_path)
         // = HISTOGRAMM ADPATION HANDLING                                      =
         // =====================================================================
 
-/*
-        if (bc_templ < bc_threshold)
-        {
-            // object contour found
-            // occlusion or deformation possible (but not considerable)
-            // adapt histogram
-        }
-        else // if (bc_templ > bc_threshold_repl)
-        {
-            // lost object after evolution
-            // use evolved_repl
-        }
-*/
+        // object contour found
+        // occlusion or deformation possible (but not considerable)
+        // --> adapt histogram
+        if (bc_templ < bc_threshold_adapt)
+            templ_hist.adapt(evolved_hist, a);
 
         if (bc_templ >= bc_threshold) // lost object after contour evolution
         {

@@ -29,6 +29,13 @@ public:
      */
     void calc_hist(cv::Mat& img, int type, const cv::Mat& mask=cv::Mat());
 
+    /*!
+     * \brief Adapt histogram.
+     * \param hist2 histogram used for adaption.
+     * \param a adaption factor.
+     */
+    void adapt(const Histogram& hist2, float a=.1f);
+
 private:
     //! Calculate one chanel histogram.
     void calc_hist_1(cv::Mat& img, const cv::Mat& mask);

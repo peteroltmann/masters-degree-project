@@ -16,6 +16,12 @@ sigma: 20
 # histogram matching threshold, default: 0.25
 bc_threshold: 0.25
 
+# histogram matchimg threshold for adpation: 0: no adaption
+bc_threshold_adapt: 0.1
+
+# histogram adaption factor (0 for using default)
+a: 0.1
+
 # number of fourier frequencies for filtering, default: 10
 num_fourier:  10
 
