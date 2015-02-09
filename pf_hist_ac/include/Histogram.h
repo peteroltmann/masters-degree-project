@@ -15,6 +15,8 @@ class Histogram
 {
 public:
     Histogram(); //!< The default constructor.
+    Histogram(const Histogram& other); //!< The copy constructor.
+    Histogram& operator=(const Histogram& other); //!< The assignement operator.
     virtual ~Histogram(); //!< The default destructor.
 
     /*!

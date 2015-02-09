@@ -5,6 +5,15 @@
 
 Histogram::Histogram() {}
 
+Histogram::Histogram(const Histogram& other)
+{
+    other.data.copyTo(data);
+}
+
+Histogram&Histogram::operator=(const Histogram& other)
+{
+    other.data.copyTo(data);
+}
 
 Histogram::~Histogram() {}
 
