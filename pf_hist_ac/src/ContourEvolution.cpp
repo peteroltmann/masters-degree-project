@@ -59,7 +59,7 @@ int ContourEvolution::run(std::string param_path)
         std::cerr << "Error loading image: '" << image_path << "'" << std::endl;
         return EXIT_FAILURE;
     }
-    if (mask_rect == Rect(0, 0, 0, 0))
+    if (!select_start_rect && mask_rect == Rect(0, 0, 0, 0))
     {
         std::cerr << "No initialisation mask given" << std::endl;
         return EXIT_FAILURE;
