@@ -199,8 +199,16 @@ int ObjectTracker::run(std::string param_path)
 
     // create video output, if ouput path is set
     cv::VideoWriter video_out;
+    cv::VideoWriter video_out_details;
     if(!output_path.empty())
     {
+        std::string name = output_path.substr(0, output_path.length()-4);
+        std::string ext = output_path.substr(output_path.length()-4);
+
+        if (ext != ".avi")
+            throw cv::Exception(-1, "output_path must end with '.avi'",
+                                "ObjectTracker::run()", "ObjectTracker.cpp", 0);
+
         if (fps <= 0)
         {
             double input_fps = capture.get(CV_CAP_PROP_FPS);
@@ -214,6 +222,16 @@ int ObjectTracker::run(std::string param_path)
         video_out.open(output_path, CV_FOURCC('X', 'V', 'I', 'D'), fps,
                       frame_size, true);
         if (!video_out.isOpened())
+        {
+            std::cerr << "Could not write output video" << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        video_out_details.open(name + "_details.avi",
+                               CV_FOURCC('X', 'V', 'I', 'D'), fps,
+                               cv::Size(frame_size.width*2,
+                                        frame_size.height*2), true);
+        if (!video_out_details.isOpened())
         {
             std::cerr << "Could not write output video" << std::endl;
             return EXIT_FAILURE;
@@ -532,12 +550,12 @@ int ObjectTracker::run(std::string param_path)
         }
 */
         // draw predicted estimate
-        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
+        // cv::rectangle(window_frame, estimate_rect, GREEN, 1);
 
         // draw contours
         templ.draw(window_templ, BLUE);
-//        cv::rectangle(window_templ, templ.bound, BLUE);
-//        cv::rectangle(window_frame, evolved.bound, WHITE);
+        // cv::rectangle(window_templ, templ.bound, BLUE);
+        // cv::rectangle(window_frame, evolved.bound, WHITE);
 
         if (!evolved_repl.empty())
             evolved_repl.draw(window_frame, WHITE);
@@ -547,6 +565,9 @@ int ObjectTracker::run(std::string param_path)
         // vieo output
         cv::Mat video_frame;
         window_frame.copyTo(video_frame);
+
+        // draw predicted estimate
+        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
 
         // put text
         int font = CV_FONT_HERSHEY_SIMPLEX;
@@ -593,6 +614,8 @@ int ObjectTracker::run(std::string param_path)
 
         if (video_out.isOpened())
             video_out << video_frame;
+        if (video_out_details.isOpened())
+            video_out_details << top;
 
         // pause on space
         if (key == ' ')
@@ -627,23 +650,7 @@ int ObjectTracker::run(std::string param_path)
     // =========================================================================
 
     if (video_out.isOpened())
-    {
         video_out.release();
-
-        // convert to mp4 using avconv system call
-        std::string name = output_path.substr(0, output_path.length()-4);
-        std::stringstream ss;
-        ss << "avconv -y -loglevel quiet -i " << output_path << " "
-           << name + ".mp4";
-
-        if (system(ss.str().c_str()) != 0)
-            std::cerr << "Error calling " << ss.str() << std::endl;
-        else
-        {   // remove opencv created file
-            ss.str("");
-            ss << "rm " << output_path;
-            if (system(ss.str().c_str()) != 0)
-                std::cerr << "Could not remove: " << output_path << std::endl;
-        }
-    }
+    if (video_out_details.isOpened())
+        video_out_details.release();
 }
