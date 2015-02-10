@@ -32,6 +32,11 @@ int main(int argc, char** argv)
         }
     }
 
+    std::cout << "VRm image and video recording" << std::endl;
+    std::cout << "  Press 's' to save an image" << std::endl;
+    std::cout << "  Press 'r' to start/stop video recording" << std::endl;
+    std::cout << "  Press 'q' to quit" << std::endl;
+
     cv::VideoWriter video_out;
     int record = false;
 
