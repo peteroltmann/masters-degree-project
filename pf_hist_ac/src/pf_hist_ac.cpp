@@ -5,7 +5,7 @@
 #include <string>
 #include <algorithm>
 
-char* get_cmd_option(char ** begin, char ** end, const std::string & option)
+char* get_cmd_option(char ** begin, char ** end, const std::string& option)
 {
     char ** itr = std::find(begin, end, option);
     if (itr != end && ++itr != end) // found and next arg exists
@@ -22,7 +22,7 @@ bool cmd_option_exists(char** begin, char** end, const std::string& option)
 int main(int argc, char* argv[])
 {
     // =========================================================================
-    // = PARSE ARGUMENTS                                                         =
+    // = PARSE ARGUMENTS                                                       =
     // =========================================================================
 
     std::string param_path("../parameterization.yml");

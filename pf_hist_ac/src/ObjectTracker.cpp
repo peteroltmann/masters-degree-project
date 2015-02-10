@@ -277,7 +277,7 @@ int ObjectTracker::run(std::string param_path)
             }
 
             std::cout << boost::format("Starting with rectangle: "
-                                       "[%3d, %3d, %3d, %3d]")
+                                       "[ %3d, %3d, %3d, %3d ]")
                          % start_rect.x % start_rect.y % start_rect.width
                          % start_rect.height << std::endl;
 
@@ -395,8 +395,11 @@ int ObjectTracker::run(std::string param_path)
         for (int i = 0; i < char_views_fd.size(); i++)
             fd_char_views[i] = evolved_fd.match(char_views_fd[i]);
 
-        hu1.push_back(hu_templ);
-        fd1.push_back(fd_templ);
+        if (!matlab_file_path.empty())
+        {
+            hu1.push_back(hu_templ);
+            fd1.push_back(fd_templ);
+        }
 
         // replacement contour if object is lost after evolution or occluded
         Contour evolved_repl;
