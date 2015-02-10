@@ -527,7 +527,8 @@ int ObjectTracker::run(std::string param_path)
             s << boost::format("/home/peter/Desktop/cv_fish/cv_fish_%03d.png")
                  % cnt_frame;
 //            cv::imwrite(s.str(), evolved_fd.reconstruct() == 1);
-            cv::waitKey();
+            cv::imwrite(s.str(), evolved.mask == 1);
+//            cv::waitKey();
         }
 */
         // draw predicted estimate
@@ -635,13 +636,13 @@ int ObjectTracker::run(std::string param_path)
         ss << "avconv -y -loglevel quiet -i " << output_path << " "
            << name + ".mp4";
 
-        if (system(ss.str().c_str()) == -1)
+        if (system(ss.str().c_str()) != 0)
             std::cerr << "Error calling " << ss.str() << std::endl;
         else
         {   // remove opencv created file
             ss.str("");
             ss << "rm " << output_path;
-            if (system(ss.str().c_str()) == -1)
+            if (system(ss.str().c_str()) != 0)
                 std::cerr << "Could not remove: " << output_path << std::endl;
         }
     }
