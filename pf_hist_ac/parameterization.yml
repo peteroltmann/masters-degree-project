@@ -25,8 +25,8 @@ a: 0.1
 # number of fourier frequencies for filtering, default: 10
 num_fourier:  10
 
-# fourier descriptor matching threshold, 0.015: fish, 0.05: plane, 1: none
-fd_threshold: 0.015
+# fourier descriptor matching threshold, 0.15: fish, 1: none
+fd_threshold: 0.15
 
 # 1: select starting rectangle with mouse, 0: use specified
 select_start_rect: 0

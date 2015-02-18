@@ -138,7 +138,7 @@ float FourierDescriptor::match(const FourierDescriptor& fd2)
     cv::Mat_<cv::Vec2f> diff = Fp2 - Fp1;
     cv::pow(diff, 2, diff);
 
-    return cv::sum(diff)[0]; // only magnitude
+    return std::sqrt(cv::sum(diff)[0]); // only magnitude
 }
 
 cv::Mat_<uchar> FourierDescriptor::reconstruct()
