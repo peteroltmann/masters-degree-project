@@ -55,7 +55,7 @@ public:
      */
     void low_pass(int num_fourier);
 
-//private:
+private:
     cv::Size mask_size; //!< the size of the contour mask for reconstruction
     cv::Point center; //!< center of contour
     int num_points; //!< number of contour points
