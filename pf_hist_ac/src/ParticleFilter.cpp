@@ -64,8 +64,6 @@ void ParticleFilter::init(const cv::Rect templ_rect)
 
 void ParticleFilter::predict()
 {
-    state = T * state; // predict new state
-
     for (int i = 0; i < num_particles; i++)
     {
         cv::Mat_<float> noise(NUM_PARAMS, 1);
@@ -73,6 +71,10 @@ void ParticleFilter::predict()
             noise(j) = rng.gaussian(sigma[j]); // calc noise vector
 
         p[i] = T * p[i] + noise; // predict particles
+
+        // assert min scale
+        float scale = std::max(.1f, p[i](PARAM_SCALE));
+        p[i](PARAM_SCALE) = scale;
     }
 }
 
@@ -81,21 +83,9 @@ void ParticleFilter::calc_weight(cv::Mat& frame, cv::Size templ_size,
 {
     cv::Rect bounds(0, 0, frame.cols, frame.rows);
 
-    // assert min scale
-    float scale = std::max(.1f, state(PARAM_SCALE));
-    state(PARAM_SCALE) = scale;;
-
-    // estimated state confidence
-    cv::Mat frame_roi(frame, state_rect(templ_size, bounds));
-    confidence = calc_probability(frame_roi, templ_hist, sigma);
-
     float sum = 0.f;
     for (int i = 0; i < num_particles; i++)
     {
-        // assert min scale
-        float scale = std::max(.1f, p[i](PARAM_SCALE));
-        p[i](PARAM_SCALE) = scale;
-
         // particle confidence
         cv::Mat frame_roi(frame, state_rect(templ_size, bounds, i));
         w[i] = calc_probability(frame_roi, templ_hist, sigma);
@@ -106,21 +96,24 @@ void ParticleFilter::calc_weight(cv::Mat& frame, cv::Size templ_size,
     mean_confidence = sum / num_particles; // for systematic resampling
 }
 
+void ParticleFilter::calc_state_confidence(cv::Mat& frame, cv::Size templ_size,
+                                           Histogram& templ_hist, float sigma)
+{
+    cv::Rect bounds(0, 0, frame.cols, frame.rows);
+
+    // estimated state confidence
+    cv::Mat frame_roi(frame, state_rect(templ_size, bounds));
+    confidence = calc_probability(frame_roi, templ_hist, sigma);
+}
+
 void ParticleFilter::weighted_mean_estimate()
 {
     float sum = 0.f;
-    float w_max = 0.f;
-    int w_max_idx = 0.f;
     cv::Mat_<float> tmp = cv::Mat_<float>::zeros(NUM_PARAMS, 1);
     for (int i = 0; i < num_particles; i++)
     {
         tmp += p[i] * w[i];
         sum += w[i];
-        if (w_max < w[i])
-        {
-            w_max = w[i];
-            w_max_idx = i;
-        }
     }
     state = tmp / sum;
 }

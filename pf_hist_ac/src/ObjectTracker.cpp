@@ -249,7 +249,14 @@ int ObjectTracker::run(std::string param_path)
         if (frame.empty()) // end of image sequence
             break;
 
-        cv::cvtColor(frame, frame_gray, CV_RGB2GRAY);
+        // check channgels: on grayscale images, windows loads 1, linux 3
+        if (frame.channels() == 3 || frame.channels() == 4)
+            cv::cvtColor(frame, frame_gray, CV_RGB2GRAY);
+        else
+        {
+            frame.copyTo(frame_gray);
+            cv::cvtColor(frame, frame, CV_GRAY2RGB);
+        }
         frame.copyTo(window_frame);
 
         cv::Rect bounds(0, 0, frame.cols, frame.rows); // outer frame bounds
@@ -373,6 +380,9 @@ int ObjectTracker::run(std::string param_path)
             cv::rectangle(window_frame, pi_rect, RED, 1);
         }
 */
+
+        pf.weighted_mean_estimate();
+        pf.calc_state_confidence(frame, templ.bound.size(), templ_hist, sigma);
 
         // get predicted estimate rectangle
         cv::Rect estimate_rect = pf.state_rect(templ.bound.size(), bounds);
@@ -516,7 +526,6 @@ int ObjectTracker::run(std::string param_path)
         // =====================================================================
 
         // update state and resampling
-        pf.weighted_mean_estimate();
         pf.resample();
 //        pf.resample_systematic();
 

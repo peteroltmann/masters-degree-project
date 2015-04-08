@@ -39,6 +39,12 @@ public:
                      Histogram &templ_hist, float sigma);
 
     /*!
+     * \brief Calculate the estimated state confidence.
+     */
+    void calc_state_confidence(cv::Mat &frame, cv::Size templ_size,
+                               Histogram &templ_hist, float sigma);
+
+    /*!
      * \brief Estimate the state.
      *
      * Estimation is done by calculating the weighted mean state.
@@ -58,6 +64,10 @@ public:
      */
     void resample_systematic();
 
+    /*!
+     * \brief TODO
+     * \param frame_size
+     */
     void redistribute(cv::Size frame_size);
 
     /*!
