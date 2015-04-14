@@ -1106,4 +1106,5 @@ bool RegBasedContours::push_back(int listNo, bool tmp, cv::Point p, cv::Size siz
             std::cerr << "List number out of range: " << listNo << std::endl;
             break;
     }
+    return success;
 }

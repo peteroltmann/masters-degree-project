@@ -525,7 +525,6 @@ int ObjectTracker::run(std::string param_path)
         // = UPDATE PARTICLE FILTER                                            =
         // =====================================================================
 
-        // update state and resampling
         pf.resample();
 //        pf.resample_systematic();
 
@@ -608,7 +607,7 @@ int ObjectTracker::run(std::string param_path)
             {
                 std::stringstream s;
                 s << boost::format(save_img_path) % cnt_frame;
-                if (!cv::imwrite(s.str(), window_frame))
+                if (!cv::imwrite(s.str(), video_frame))
                 {
                     std::cerr << "Error: could not write image: '" << s.str()
                               << "'" << std::endl;
@@ -662,4 +661,6 @@ int ObjectTracker::run(std::string param_path)
         video_out.release();
     if (video_out_details.isOpened())
         video_out_details.release();
+
+    return EXIT_SUCCESS;
 }

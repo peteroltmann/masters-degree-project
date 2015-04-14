@@ -30,6 +30,8 @@ FourierDescriptor&FourierDescriptor::operator=(const FourierDescriptor& other)
     other.U.copyTo(U);
     other.Fc.copyTo(Fc);
     other.Fp.copyTo(Fp);
+
+    return *this;
 }
 
 FourierDescriptor::~FourierDescriptor() {}

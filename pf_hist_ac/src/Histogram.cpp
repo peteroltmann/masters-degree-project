@@ -13,6 +13,7 @@ Histogram::Histogram(const Histogram& other)
 Histogram&Histogram::operator=(const Histogram& other)
 {
     other.data.copyTo(data);
+    return *this;
 }
 
 Histogram::~Histogram() {}

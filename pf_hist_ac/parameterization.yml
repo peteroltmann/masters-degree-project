@@ -66,6 +66,7 @@ fps: 25.0
 # save_img_path: "../output/car/car%03d.png"
 # save_img_path: "../output/walking/walking%03d.png"
 # save_img_path: "../output/fish/fish%03d.png"
+# save_img_path: "../output/passat/passat%03d.png"
 
 # matching values that can be read in with mathlab, leave empty for no output
 # matlab_file_path: "../matlab/matlab_out.m"
