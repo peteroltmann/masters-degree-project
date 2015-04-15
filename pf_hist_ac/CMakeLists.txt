@@ -18,7 +18,7 @@ aux_source_directory(src SRC_LIST)
 
 # read out include dir to show up in Qt Creator (add to executable/library)
 file(GLOB_RECURSE INCLUDE_LIST RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-     FOLLOW_SYMLINKS include/*.h)
+     FOLLOW_SYMLINKS include/*.h *.yml)
 
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED)

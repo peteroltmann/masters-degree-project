@@ -107,11 +107,6 @@ public:
     float mean_confidence; //!< The mean confidence for systematic resampling.
 
     cv::RNG& rng; //!< The random number generator reference.
-
-    float gaussian(float mu, float sigma, float x) {
-        return std::exp(- pow(mu - x, 2) / pow(sigma, 2) / 2.0) /
-               std::sqrt(2.0 * CV_PI * pow(sigma, 2));
-    }
 };
 
 #endif // CONTOUR_PARTICLE_FILTER_H

@@ -58,7 +58,7 @@ public:
 
     /*!
      * \brief Apply a region-based active contour algorithm to the specified
-     * image.
+     * image using the narrow-band method..
      *
      * \param frame         the image to apply the algorithm to
      * \param initMask      the initialization mask for the level-set function
@@ -150,15 +150,15 @@ private:
 
     cv::Mat image; //!< Current original frame
     cv::Mat frame; //!< Current frame in CV_32F
-    cv::Mat label;
-    cv::Mat F;
+    cv::Mat label; //!< The label map
+    cv::Mat F; //! The force effecting the contour
     std::list<cv::Point> lz, ln1, lp1, ln2, lp2; //!< Level set lists.
     std::list<cv::Point> sz, sn1, sp1, sn2, sp2; //!< Temporary lists.
     std::list<cv::Point>::iterator lz_it, ln1_it, lp1_it, ln2_it, lp2_it;
     std::list<cv::Point>::iterator sz_it, sn1_it, sp1_it, sn2_it, sp2_it;
 
 public:
-    cv::Mat phi;
+    cv::Mat phi; //!< The surface function
 };
 
 #endif // LOCALIZED_CONTOURS_H

@@ -5,6 +5,8 @@
 #include "Constants.h"
 
 Selector::Selector(const std::string window, const cv::Mat& frame) :
+    selection_valid(false),
+    selecting(false),
     window(window),
     bounds(0, 0, frame.cols, frame.rows)
 {
