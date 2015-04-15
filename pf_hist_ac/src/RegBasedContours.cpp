@@ -20,7 +20,8 @@ void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat init_mask,
 {
 #ifdef SAVE_AS_VIDEO
     cv::VideoWriter videoOut;
-    videoOut.open("C:/Users/Peter/Desktop/output.avi", -1, 60, frame.size(), false);
+    videoOut.open("../output/output.avi", CV_FOURCC('X', 'V', 'I', 'D'), 60,
+        frame.size(), false);
     if (!videoOut.isOpened())
     {
         std::cerr << "Could not write output video" << std::endl;
@@ -66,7 +67,7 @@ void RegBasedContours::applySFM(cv::Mat& frame, cv::Mat init_mask,
         cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
         cv::Mat out;
         image.copyTo(out);
-        cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
+        cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 1);
         cv::imshow(WINDOW, out);
         cv::waitKey(1);
 
@@ -279,7 +280,7 @@ void RegBasedContours::apply(cv::Mat frame, cv::Mat init_mask, int iterations)
         cv::findContours(inOut, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
         cv::Mat out;
         image.copyTo(out);
-        cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 2);
+        cv::drawContours(out, contours, -1, cv::Scalar(255, 255, 255), 1);
         cv::imshow(WINDOW, out);
         cv::waitKey(1);
 //        std::cout << "its: " << its << std::endl;

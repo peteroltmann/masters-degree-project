@@ -5,10 +5,10 @@
 # ==============================================================================
 
 # number of particles, default: 100
-num_particles: 200
+num_particles: 100
 
 # number of iterations, default: 10
-num_iterations: 300
+num_iterations: 150
 
 # sigma for weight calculation, default: 20
 sigma: 20
@@ -16,7 +16,7 @@ sigma: 20
 # histogram matching threshold, default: 0.25
 bc_threshold: 0.25
 
-# histogram matchimg threshold for adpation: 0: no adaption
+# histogram matchimg threshold for adpation, default: 0.1, 0: no adaption
 bc_threshold_adapt: 0.1
 
 # histogram adaption factor (0 for using default)
@@ -25,26 +25,22 @@ a: 0.1
 # number of fourier frequencies for filtering, default: 10
 num_fourier:  10
 
-# fourier descriptor matching threshold, 0.15: fish, 1: none
+# fourier descriptor matching threshold, default: 0.15, 1: none
 fd_threshold: 0.15
 
 # 1: select starting rectangle with mouse, 0: use specified
 select_start_rect: 0
 
 # starting rectangle for contour evolution on first frame
-# start_rect: [ 265,  10,  90,  65 ] # car
 start_rect: [  35, 150,  40,  20 ] # fish
 # start_rect: [  70, 60,   50, 100 ] # plane
-# start_rect: [ 145, 100,  50,  25 ] # black car
 # start_rect: [ 130,  90,  35,  40 ] # hand
-# start_rect: [  55,  90,  75,  20 ] # passat 1
+# start_rect: [  55,  90,  75,  20 ] # car
 
 # path to input video or image sequence
-# input_path: "../input/car_orig.avi"
 input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
 # input_path: "../input/big_1_3.mp4"
-# input_path: "../input/hand.mp4"
-# input_path: "../input/black_004.mp4"
+# input_path: "../input/hand_2.mp4"
 # input_path: "../input/passat_1.mp4"
 
 # input_path: "../../vrm_record/output/vid_000.mp4"
@@ -53,27 +49,36 @@ input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
 char_views: ["../input/char_views/cv_fish/cv_fish_back_right_down.png",
              "../input/char_views/cv_fish/cv_fish_back_right_up.png"]
 # char_views: ["../input/char_views/cv_plane/cv_plane_right.png"]
-# char_views: ["../input/char_views/cv_passat_1/cv_passat_1_right_up.png"]
+# char_views: ["../input/char_views/cv_passat_1/cv_passat_1_right_up_s.png"]
 
-# path to output video and file name, leave empty for no output
-# output_path: "../output/out.avi"
+# file name for video and image output, leave empty to use 'out'
+# file extension is added automatically
+# output_file_name: "fish_result"
+
+# path to output video direvtory, leave empty for no output
+# output_path: "../output/fish/"
 
 # frames per second for saved video, <= 0 or empty for taking source fps
 fps: 25.0
 
-# path to output folder and filename for each frame as an image
-# format string to fill with frame number, leave empty for no output
-# save_img_path: "../output/car/car%03d.png"
-# save_img_path: "../output/walking/walking%03d.png"
-# save_img_path: "../output/fish/fish%03d.png"
-# save_img_path: "../output/passat/passat%03d.png"
+# path to output directory for each frame as an image
+# detailed view is added to 'details/' that needs to be created in advance
+# save_img_path: "../output/fish/fish_img/"
 
 # matching values that can be read in with mathlab, leave empty for no output
 # matlab_file_path: "../matlab/matlab_out.m"
 
 
-# Contour Evolution detailed parameters, defaults used if not specified
-method: 0                               # 0: CHAN_VESE, 1: YEZZI
-localized: 0                            # true/false (0/1)
-rad: 18                                 # radius of localized regions
-alpha: .2                               # curvature weight (higher -> smoother)
+# contour evolution detailed parameters, defaults used if not specified
+
+# 0: CHAN_VESE, 1: YEZZI, default: 0
+method: 0  
+
+# true/false (0/1), default: 0               
+localized: 0
+
+# radius of localized regions, default: 18
+rad: 18  
+
+# curvature weight (higher -> smoother), default: 0.2
+alpha: 0.2

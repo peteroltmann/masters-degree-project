@@ -156,11 +156,6 @@ int ContourEvolution::run(std::string param_path)
     cv::drawContours(seg, contours, -1, 255, CV_FILLED);
     imshow(WINDOW, seg);
 
-//    cv::FileStorage fs2("../templ.yml", cv::FileStorage::WRITE);
-//    cv::Mat templ(frame.size(), CV_8U, cv::Scalar(0));
-//    templ.setTo(1, seg == 255);
-//    fs2 << "templ" << templ;
-
     std::cout << "Done. Press key to quit." << std::endl;
     waitKey(0);
 

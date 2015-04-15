@@ -3,15 +3,17 @@
 
 #include <opencv2/core/core.hpp>
 
+// colors
+const cv::Scalar BLACK(0, 0, 0);
 const cv::Scalar WHITE(255, 255, 255);
 const cv::Scalar BLUE(255, 0, 0);
 const cv::Scalar GREEN(0, 255, 0);
 const cv::Scalar RED(0, 0, 255);
 
-const std::string WINDOW_NAME("Image");
-const std::string WINDOW_FRAME_NAME("Frame");
+// window names
+const std::string WINDOW_NAME("ObjectTracker");
+const std::string WINDOW_DETAILED_NAME("Detailed Result");
 const std::string WINDOW_TEMPALTE_NAME("Template");
-const std::string WINDOW_RECONSTR_NAME("Reconstructed");
-const std::string WINDOW_RECONSTR_TEMPL_NAME("Reconstructed Template");
+const std::string WINDOW_CV_NAME("Characteristic Views");
 
 #endif // CONSTANTS_H

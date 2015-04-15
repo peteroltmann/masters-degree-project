@@ -1,44 +1,37 @@
 %YAML:1.0
-# image_path: "../input/airplane.jpg"      	# mask_rect: [ 122, 110, 112, 112 ]
-# mask_rect: [ 122, 110, 112, 112 ]        	# [x, y, width, height]
-# image_path: "../input/monkey.png"        	# mask_rect: [ 88, 36, 139, 177 ]
-# mask_rect: [ 88, 36, 139, 177 ]
-# image_path: "../input/hand.jpg"          	# mask_rect: [ 310, 220, 80, 60 ]
-# mask_rect: [ 310, 220, 80, 60 ]
 
-# image_path: "../input/car.png"
-# mask_rect: [ 265, 10, 90, 65 ]
+# ==============================================================================
+# = PARAMETERIZATION                                                           =
+# ==============================================================================
 
-# image_path: "../../pf_hist_ac/input/palau2_gray_cropped/palau2_frames_0000.png"
-# mask_rect: [ 35, 150, 40, 20 ]
+image_path: "../input/palau2_gray_cropped/palau2_frames_0000.png"
+mask_rect: [ 35, 150, 40, 20 ]
 
-# image_path: "../input/opel-gt.jpg"
-# mask_rect: [ 130, 90, 35, 40 ]
+# image_path: "../input/big_1_3.png"
+# mask_rect: [  70, 60,   50, 100 ]
 
-# image_path: "../input/hand_000.png"
-# mask_rect: [ 130, 90, 35, 40 ]
+# image_path: "../input/hand_2.png"
+# mask_rect: [ 130,  90,  35,  40 ] # hand
 
-# image_path: "../input/black_004.png"
-# mask_rect: [ 145, 100, 50, 25 ]
+# image_path: "../input/passat_1.png"
+# mask_rect: [  55,  90,  75,  20 ]
 
-image_path: "../input/big_1_3.png"
-mask_rect: [  70, 60,   50, 100 ]
+iterations: 150
 
-# image_path: "C:\\Users\\Peter\\Desktop\\OriginalVideos\\walking_2.png"
-# mask_rect: [ 50, 10, 50, 30 ]
+# 0: CHAN_VESE, 1: YEZZI, default: 0
+method: 0  
 
-# image_path: "C:\\Users\\Peter\\Desktop\\OriginalVideos\\PlaneSequence\\frame_00013451.pgm"
-# mask_rect: [ 160, 340, 10, 20 ]
+# true/false (0/1), default: 0               
+localized: 0
 
-iterations: 450
-method: 0                               # 0: CHAN_VESE, 1: YEZZI
-localized: 0                            # true/false (0/1)
-rad: 18                                 # radius of localized regions
-alpha: .2                               # curvature weight (higher -> smoother)
-a: [0.9, 0.1, 0.1]                      # weighting for each channel (only C3)
+# radius of localized regions, default: 18
+rad: 18  
+
+# curvature weight (higher -> smoother), default: 0.2
+alpha: 0.2
 
 # 1: select starting rectangle with mouse, 0: use specified
-select_start_rect: 1
+select_start_rect: 0
 
 # 1: do not use sparse-filed method, use narrow-band method (slower)
 no_sfm: 0

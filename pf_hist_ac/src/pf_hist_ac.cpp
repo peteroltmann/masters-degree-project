@@ -49,6 +49,8 @@ int main(int argc, char* argv[])
 
         std::cout << "Control:" << std::endl;
         std::cout << "  Press 'q' to quit" << std::endl;
+        std::cout << "  Press 'd' to toggle detailed output" << std::endl;
+        std::cout << "  Press 't' to show/hide template" << std::endl;
         std::cout << "  Press 'space' pause/resume" << std::endl;
 
         return EXIT_SUCCESS;

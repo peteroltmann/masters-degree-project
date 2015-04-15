@@ -39,6 +39,7 @@ int ObjectTracker::run(std::string param_path)
     cv::Rect start_rect;
     std::string input_path;
     std::vector<std::string> char_views;
+    std::string output_file_name;
     std::string output_path;
     double fps;
     std::string save_img_path;
@@ -69,6 +70,7 @@ int ObjectTracker::run(std::string param_path)
     fs["start_rect"] >> start_rect;
     fs["input_path"] >> input_path;
     fs["char_views"] >> char_views;
+    fs["output_file_name"] >> output_file_name;
     fs["output_path"] >> output_path;
     fs["fps"] >> fps;
     fs["save_img_path"] >> save_img_path;
@@ -136,6 +138,9 @@ int ObjectTracker::run(std::string param_path)
         return EXIT_FAILURE;
     }
 
+    if (output_file_name.empty())
+        output_file_name = "out";
+
     // input_path: on open VideoCapture
     // char_views: on first frame evolution: if empty, only use first frame
     // output_path: on open VideoWriter
@@ -159,8 +164,12 @@ int ObjectTracker::run(std::string param_path)
     // = DECLARATION AND INITIALIZATION                                        =
     // =========================================================================
 
-    // windows
+    // key control
     int key = 0;
+    bool detailed_output = false; // toggle detailed output by pressing 'd'
+    bool show_template = false; // toggle template 't'
+
+    // windows
     cv::namedWindow(WINDOW_NAME);
 
     // images
@@ -168,6 +177,7 @@ int ObjectTracker::run(std::string param_path)
     cv::Mat frame_gray; // current frame (grayscale)
     cv::Mat templ_image; // image of the template
     cv::Mat window_frame; // current frame for drawing output
+    cv::Mat window_detailed; // current frame for drawing detailed output
     cv::Mat window_templ; // current template frame for drawing output
 
     // template contour, histogram and fourier descriptor
@@ -175,7 +185,7 @@ int ObjectTracker::run(std::string param_path)
     Histogram templ_hist;
     FourierDescriptor templ_fd;
 
-    cv::Mat_<float> hu1; // hu values for matlab output
+    // cv::Mat_<float> hu1; // hu values for matlab output
     cv::Mat_<float> fd1; // fd values for matlab output
 
     // characteristic views
@@ -202,13 +212,6 @@ int ObjectTracker::run(std::string param_path)
     cv::VideoWriter video_out_details;
     if(!output_path.empty())
     {
-        std::string name = output_path.substr(0, output_path.length()-4);
-        std::string ext = output_path.substr(output_path.length()-4);
-
-        if (ext != ".avi")
-            throw cv::Exception(-1, "output_path must end with '.avi'",
-                                "ObjectTracker::run()", "ObjectTracker.cpp", 0);
-
         if (fps <= 0)
         {
             double input_fps = capture.get(CV_CAP_PROP_FPS);
@@ -219,18 +222,18 @@ int ObjectTracker::run(std::string param_path)
         cv::Size frame_size(capture.get(CV_CAP_PROP_FRAME_WIDTH),
                             capture.get(CV_CAP_PROP_FRAME_HEIGHT));
 
-        video_out.open(output_path, CV_FOURCC('X', 'V', 'I', 'D'), fps,
-                      frame_size, true);
+        video_out.open(output_path + output_file_name + ".avi",
+                       CV_FOURCC('X', 'V', 'I', 'D'), fps, frame_size, true);
         if (!video_out.isOpened())
         {
             std::cerr << "Could not write output video" << std::endl;
             return EXIT_FAILURE;
         }
 
-        video_out_details.open(name + "_details.avi",
+        video_out_details.open(output_path + output_file_name + "_details.avi",
                                CV_FOURCC('X', 'V', 'I', 'D'), fps,
-                               cv::Size(frame_size.width*2,
-                                        frame_size.height*2), true);
+                               cv::Size(frame_size.width,
+                                        frame_size.height), true);
         if (!video_out_details.isOpened())
         {
             std::cerr << "Could not write output video" << std::endl;
@@ -278,6 +281,7 @@ int ObjectTracker::run(std::string param_path)
 
                 Selector selector(WINDOW_NAME, frame); // handle mouse callback
                 cv::imshow(WINDOW_NAME, frame);
+
                 while (!selector.is_valid())
                 {
                     cv::waitKey();
@@ -415,8 +419,8 @@ int ObjectTracker::run(std::string param_path)
 
         // calculate matching values between evolved contour and template
         float bc_templ = evolved_hist.match(templ_hist);
-        float hu_templ = evolved.match(templ);
         float fd_templ = evolved_fd.match(templ_fd);
+        // float hu_templ = evolved.match(templ);
 
         // matching char_views
         std::vector<float> fd_char_views(char_views_fd.size());
@@ -425,8 +429,8 @@ int ObjectTracker::run(std::string param_path)
 
         if (!matlab_file_path.empty())
         {
-            hu1.push_back(hu_templ);
             fd1.push_back(fd_templ);
+            // hu1.push_back(hu_templ);
         }
 
         // replacement contour if object is lost after evolution or occluded
@@ -532,11 +536,10 @@ int ObjectTracker::run(std::string param_path)
         // = DATA OUTPUT                                                       =
         // =====================================================================
 
-        std::cout << boost::format("#%03d: bc-templ[ %f ] hu-templ[ %f ] "
-                                   /*"fd-templ[ %f ] last-occluded[ %d ] "
-                                   "next-free[ %d ]"*/)
-                     % cnt_frame % bc_templ % hu_templ/* % fd_templ
-                     % last_occluded % next_free << std::endl*/;
+        std::cout << boost::format("#%03d: bc-templ[ %f ] "
+                                   /*"hu-templ[ %f ] fd-templ[ %f ]"*/)
+                     % cnt_frame % bc_templ/* % hu_templ % fd_templ
+                     << std::endl*/;
 
         std::cout << "fd_char_views[ ";
         for (int i = 0; i < fd_char_views.size(); i++)
@@ -546,58 +549,54 @@ int ObjectTracker::run(std::string param_path)
         // =====================================================================
         // = IMAGE OUTPUT                                                      =
         // =====================================================================
-/*
-        if (cnt_frame >= 280 && cnt_frame <= 300)
-        {
-            std::stringstream s;
-            s << boost::format("/home/peter/Desktop/cv_fish/cv_fish_%03d.png")
-                 % cnt_frame;
-//            cv::imwrite(s.str(), evolved_fd.reconstruct() == 1);
-            cv::imwrite(s.str(), evolved.mask == 1);
-//            cv::waitKey();
-        }
-*/
-        // draw predicted estimate
-        // cv::rectangle(window_frame, estimate_rect, GREEN, 1);
 
         // draw contours
         templ.draw(window_templ, BLUE);
-        // cv::rectangle(window_templ, templ.bound, BLUE);
-        // cv::rectangle(window_frame, evolved.bound, WHITE);
 
+        // draw result contur
         if (!evolved_repl.empty())
             evolved_repl.draw(window_frame, WHITE);
         else
             evolved.draw(window_frame, WHITE);
 
-        // vieo output
-        cv::Mat video_frame;
-        window_frame.copyTo(video_frame);
+        // create detailed result
+        if (detailed_output || video_out_details.isOpened())
+        {
+            window_frame.copyTo(window_detailed);
 
-        // draw predicted estimate
-        cv::rectangle(window_frame, estimate_rect, GREEN, 1);
+            // predicted estimate and evolved contour
+            cv::rectangle(window_detailed, estimate_rect, GREEN, 1);
+            if (!evolved_repl.empty()) // on occlusion
+                evolved.draw(window_detailed, BLUE);
 
-        // put text
-        int font = CV_FONT_HERSHEY_SIMPLEX;
+            // add cropped best matching characteristic view
+            cv::Mat_<uchar> best_cv = char_views_fd[last_match_idx].reconstruct() == 1;
+            cv::Rect best_cv_rect = padding_free_rect(best_cv);
 
-        // reconstructed images - bottom
-        cv::Mat er = evolved_fd.reconstruct() == 1;
-        cv::Mat tr = templ_fd.reconstruct() == 1;
-        cv::putText(er, WINDOW_RECONSTR_NAME, TEXT_POS, font, .4, WHITE);
-        cv::putText(tr, WINDOW_RECONSTR_TEMPL_NAME, TEXT_POS, font, .4, WHITE);
+            // draw bottom right rectangle with best matching characteristic view
+            cv::Mat_<uchar> best_cv_roi(best_cv, best_cv_rect);
+            cv::Rect cv_rect(window_detailed.cols - best_cv_rect.width,
+                             window_detailed.rows - best_cv_rect.height,
+                             best_cv_rect.width, best_cv_rect.height);
+            cv::Mat draw_roi(window_detailed, cv_rect);
+            cv::rectangle(window_detailed, cv_rect, BLACK, -1);
+            draw_roi.setTo(WHITE, best_cv_roi);
+        }
 
-        // frame (particle filter, evolved) - template
-        cv::putText(window_frame, WINDOW_FRAME_NAME, TEXT_POS, font, .4, WHITE);
-        cv::putText(window_templ, WINDOW_TEMPALTE_NAME, TEXT_POS, font, .4, WHITE);
+        if (detailed_output)
+            cv::imshow(WINDOW_NAME, window_detailed);
+        else
+            // show result image
+            cv::imshow(WINDOW_NAME, window_frame);
 
-        // concatenate
-        cv::Mat bottom, top;
-        cv::hconcat(er, tr, bottom);
-        cv::cvtColor(bottom, bottom, CV_GRAY2RGB);
-        cv::hconcat(window_frame, window_templ, top);
-        cv::vconcat(top, bottom, top);
+        if (show_template)
+        {
+            cv::namedWindow(WINDOW_TEMPALTE_NAME);
+            cv::imshow(WINDOW_TEMPALTE_NAME, window_templ);
+        }
+        else
+            cv::destroyWindow(WINDOW_TEMPALTE_NAME);
 
-        cv::imshow(WINDOW_NAME, top);
         key = cv::waitKey(1);
 
         // save image, if path is set
@@ -606,8 +605,19 @@ int ObjectTracker::run(std::string param_path)
             try
             {
                 std::stringstream s;
-                s << boost::format(save_img_path) % cnt_frame;
-                if (!cv::imwrite(s.str(), video_frame))
+                s << boost::format(save_img_path + output_file_name + "_%03d" +
+                                   ".png") % cnt_frame;
+                if (!cv::imwrite(s.str(), window_frame))
+                {
+                    std::cerr << "Error: could not write image: '" << s.str()
+                              << "'" << std::endl;
+                }
+
+                s = std::stringstream();
+                s << boost::format(save_img_path + "details/" +
+                                   output_file_name + "_details" + "_%03d.png")
+                                   % cnt_frame;
+                if (!cv::imwrite(s.str(), window_detailed))
                 {
                     std::cerr << "Error: could not write image: '" << s.str()
                               << "'" << std::endl;
@@ -621,9 +631,9 @@ int ObjectTracker::run(std::string param_path)
         }
 
         if (video_out.isOpened())
-            video_out << video_frame;
+            video_out << window_frame;
         if (video_out_details.isOpened())
-            video_out_details << top;
+            video_out_details << window_detailed;
 
         // pause on space
         if (key == ' ')
@@ -632,6 +642,10 @@ int ObjectTracker::run(std::string param_path)
             while (key != ' ' && key != 'q')
                 key = cv::waitKey(0);
         }
+        else if (key == 'd')
+            detailed_output = !detailed_output;
+        else if (key == 't')
+            show_template = !show_template;
 
         cnt_frame++;
     }
@@ -645,8 +659,8 @@ int ObjectTracker::run(std::string param_path)
         std::ofstream m_output(matlab_file_path);
         if (m_output.is_open())
         {
-            m_output << "hu1 = " << hu1 << ";" << std::endl;
             m_output << "fd1 = " << fd1 << ";" << std::endl;
+            // m_output << "hu1 = " << hu1 << ";" << std::endl;
             m_output.close();
         }
         else
@@ -663,4 +677,44 @@ int ObjectTracker::run(std::string param_path)
         video_out_details.release();
 
     return EXIT_SUCCESS;
+}
+
+cv::Rect ObjectTracker::padding_free_rect(cv::Mat img)
+{
+    // find zero-padding free ROI
+    int cv_y = 0, height = 0, cv_x = 0, width = 0;
+    for (int y = 0; y < img.rows; y++)
+    {
+        if (cv::countNonZero(img.row(y)))
+        {
+            cv_y = y == 0 ? y : y - 1; // one pixel margin
+            break;
+        }
+    }
+    for (int y = img.rows-1; y >= 0; y--)
+    {
+        if (cv::countNonZero(img.row(y)))
+        {
+            height = y == img.rows-1 ? y - cv_y + 1 : y - cv_y + 2 ;
+            break;
+        }
+    }
+    for (int x = 0; x < img.cols; x++)
+    {
+        if (cv::countNonZero(img.col(x)))
+        {
+            cv_x = x == 0 ? x : x - 1;
+            break;
+        }
+    }
+    for (int x = img.cols-1; x >= 0 ; x--)
+    {
+        if (cv::countNonZero(img.col(x)))
+        {
+            width = x == img.cols-1 ? x - cv_x + 1 : x - cv_x + 2;
+            break;
+        }
+    }
+
+    return cv::Rect(cv_x, cv_y, width, height);
 }
