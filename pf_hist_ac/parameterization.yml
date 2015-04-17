@@ -23,7 +23,7 @@ bc_threshold_adapt: 0.1
 a: 0.1
 
 # number of fourier frequencies for filtering, default: 10
-num_fourier:  10
+num_fourier:  7
 
 # fourier descriptor matching threshold, default: 0.15, 1: none
 fd_threshold: 0.15
@@ -34,13 +34,13 @@ select_start_rect: 0
 # starting rectangle for contour evolution on first frame
 start_rect: [  35, 150,  40,  20 ] # fish
 # start_rect: [  70, 60,   50, 100 ] # plane
-# start_rect: [ 130,  90,  35,  40 ] # hand
+# start_rect: [  59,  42, 123, 154 ] # hand count
 # start_rect: [  55,  90,  75,  20 ] # car
 
 # path to input video or image sequence
 input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
 # input_path: "../input/big_1_3.mp4"
-# input_path: "../input/hand_2.mp4"
+# input_path: "../input/hand_count.mp4"
 # input_path: "../input/passat_1.mp4"
 
 # input_path: "../../vrm_record/output/vid_000.mp4"
@@ -49,6 +49,10 @@ input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
 char_views: ["../input/char_views/cv_fish/cv_fish_back_right_down.png",
              "../input/char_views/cv_fish/cv_fish_back_right_up.png"]
 # char_views: ["../input/char_views/cv_plane/cv_plane_right.png"]
+# char_views: ["../input/char_views/cv_hand_count/cv_hand_count_1_c.png",
+#             "../input/char_views/cv_hand_count/cv_hand_count_2_c.png",
+#             "../input/char_views/cv_hand_count/cv_hand_count_3_c.png",
+#             "../input/char_views/cv_hand_count/cv_hand_count_4_c.png"]
 # char_views: ["../input/char_views/cv_passat_1/cv_passat_1_right_up_s.png"]
 
 # file name for video and image output, leave empty to use 'out'

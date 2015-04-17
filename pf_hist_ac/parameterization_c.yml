@@ -10,8 +10,8 @@ mask_rect: [ 35, 150, 40, 20 ]
 # image_path: "../input/big_1_3.png"
 # mask_rect: [  70, 60,   50, 100 ]
 
-# image_path: "../input/hand_2.png"
-# mask_rect: [ 130,  90,  35,  40 ] # hand
+# image_path: "../input/hand_count.png"
+# mask_rect: [  59,  42, 123, 154 ] # hand count
 
 # image_path: "../input/passat_1.png"
 # mask_rect: [  55,  90,  75,  20 ]
