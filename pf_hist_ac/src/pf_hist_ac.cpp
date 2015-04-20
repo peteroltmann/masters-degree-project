@@ -45,10 +45,12 @@ int main(int argc, char* argv[])
         std::cout << "  -f <param-file>  Specify parameterization file, "
                      "default: ../parameterization.yml" << std::endl;
         std::cout << "  -c               Use only single image contour "
-                     "evoulution" << std::endl << std::endl;
+                     "evolution" << std::endl << std::endl;
 
-        std::cout << "Control:" << std::endl;
+        std::cout << "Controls:" << std::endl;
         std::cout << "  Press 'q' to quit" << std::endl;
+        std::cout << "  Press 'p' to show/hide particle filter estimate"
+                  << std::endl;
         std::cout << "  Press 'd' to toggle detailed output" << std::endl;
         std::cout << "  Press 't' to show/hide template" << std::endl;
         std::cout << "  Press 'space' pause/resume" << std::endl;

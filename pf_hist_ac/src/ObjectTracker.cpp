@@ -167,6 +167,7 @@ int ObjectTracker::run(std::string param_path)
     // key control
     int key = 0;
     bool detailed_output = false; // toggle detailed output by pressing 'd'
+    bool show_pf_estimate = false; // toggle particle filter estimate 'p'
     bool show_template = false; // toggle template 't'
 
     // windows
@@ -559,6 +560,9 @@ int ObjectTracker::run(std::string param_path)
         else
             evolved.draw(window_frame, WHITE);
 
+        if (show_pf_estimate) // predicted estimate
+            cv::rectangle(window_frame, estimate_rect, GREEN, 1);
+
         // create detailed result
         if (detailed_output || video_out_details.isOpened())
         {
@@ -570,10 +574,11 @@ int ObjectTracker::run(std::string param_path)
                 evolved.draw(window_detailed, BLUE);
 
             // add cropped best matching characteristic view
-            cv::Mat_<uchar> best_cv = char_views_fd[last_match_idx].reconstruct() == 1;
+            cv::Mat_<uchar> best_cv = char_views_fd[last_match_idx]
+                                      .reconstruct() == 1;
             cv::Rect best_cv_rect = padding_free_rect(best_cv);
 
-            // draw bottom right rectangle with best matching characteristic view
+            // draw bottom right rect with best matching characteristic view
             cv::Mat_<uchar> best_cv_roi(best_cv, best_cv_rect);
             cv::Rect cv_rect(window_detailed.cols - best_cv_rect.width,
                              window_detailed.rows - best_cv_rect.height,
@@ -642,6 +647,8 @@ int ObjectTracker::run(std::string param_path)
             while (key != ' ' && key != 'q')
                 key = cv::waitKey(0);
         }
+        else if (key == 'p')
+            show_pf_estimate = !show_pf_estimate;
         else if (key == 'd')
             detailed_output = !detailed_output;
         else if (key == 't')
