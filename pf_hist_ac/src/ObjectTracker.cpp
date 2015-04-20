@@ -246,9 +246,18 @@ int ObjectTracker::run(std::string param_path)
     // = MAIN LOOP                                                             =
     // =========================================================================
 
+#ifdef TIME_MEASUREMENT
+    int64 t1, t2, tsum = 0;
+#endif
+
     int cnt_frame = 0;
     while (key != 'q')
     {
+
+#ifdef TIME_MEASUREMENT
+    t1 = cv::getTickCount();
+#endif
+
         capture >> frame;
         if (frame.empty()) // end of image sequence
             break;
@@ -533,6 +542,11 @@ int ObjectTracker::run(std::string param_path)
         pf.resample();
 //        pf.resample_systematic();
 
+#ifdef TIME_MEASUREMENT
+        t2 = cv::getTickCount();
+        tsum += (t2-t1);
+#endif
+
         // =====================================================================
         // = DATA OUTPUT                                                       =
         // =====================================================================
@@ -688,6 +702,10 @@ int ObjectTracker::run(std::string param_path)
         video_out.release();
     if (video_out_details.isOpened())
         video_out_details.release();
+
+#ifdef TIME_MEASUREMENT
+        std::cout << "Time [s]: " << tsum/cv::getTickFrequency() << std::endl;
+#endif
 
     return EXIT_SUCCESS;
 }
