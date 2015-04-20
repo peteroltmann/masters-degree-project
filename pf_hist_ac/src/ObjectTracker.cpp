@@ -551,14 +551,8 @@ int ObjectTracker::run(std::string param_path)
         // = IMAGE OUTPUT                                                      =
         // =====================================================================
 
-        // draw contours
+        // draw template contour
         templ.draw(window_templ, BLUE);
-
-        // draw result contur
-        if (!evolved_repl.empty())
-            evolved_repl.draw(window_frame, WHITE);
-        else
-            evolved.draw(window_frame, WHITE);
 
         if (show_pf_estimate) // predicted estimate
             cv::rectangle(window_frame, estimate_rect, GREEN, 1);
@@ -586,7 +580,19 @@ int ObjectTracker::run(std::string param_path)
             cv::Mat draw_roi(window_detailed, cv_rect);
             cv::rectangle(window_detailed, cv_rect, BLACK, -1);
             draw_roi.setTo(WHITE, best_cv_roi);
+
+            // draw result contur
+            if (!evolved_repl.empty())
+                evolved_repl.draw(window_detailed, WHITE);
+            else
+                evolved.draw(window_detailed, WHITE);
         }
+
+        // draw result contur
+        if (!evolved_repl.empty())
+            evolved_repl.draw(window_frame, WHITE);
+        else
+            evolved.draw(window_frame, WHITE);
 
         if (detailed_output)
             cv::imshow(WINDOW_NAME, window_detailed);
