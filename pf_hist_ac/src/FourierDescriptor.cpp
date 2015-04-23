@@ -12,7 +12,6 @@ FourierDescriptor::FourierDescriptor(const cv::Mat_<uchar>& mask)
 
 FourierDescriptor::FourierDescriptor(const FourierDescriptor& other) :
     mask_size(other.mask_size),
-    center(other.center),
     num_points(other.num_points),
     cp(other.cp)
 {
@@ -24,7 +23,6 @@ FourierDescriptor::FourierDescriptor(const FourierDescriptor& other) :
 FourierDescriptor&FourierDescriptor::operator=(const FourierDescriptor& other)
 {
     mask_size = other.mask_size;
-    center = other.center;
     num_points = other.num_points;
     cp = other.cp;
     other.U.copyTo(U);
@@ -40,10 +38,6 @@ void FourierDescriptor::init(const cv::Mat_<uchar>& mask)
 {
     U.release();
     mask_size = mask.size();
-
-    // calculate mass center
-    cv::Moments m = cv::moments(mask, true);
-    new (&center) cv::Point(m.m10/m.m00, m.m01/m.m00);
 
     // estimate outer contour(s)
     cv::Mat inOut = mask == 1;

@@ -12,11 +12,6 @@ ParticleFilter::ParticleFilter(int num_particles) :
 {
     // state transitions matrix with constant velocity model
     const float DT = 1;
-//    T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0,
-//                                                    0, 1,  0, DT,
-//                                                    0, 0,  1,  0,
-//                                                    0, 0,  0,  1);
-
     T = (cv::Mat_<float>(NUM_PARAMS, NUM_PARAMS) << 1, 0, DT,  0, 0,
                                                     0, 1,  0, DT, 0,
                                                     0, 0,  1,  0, 0,

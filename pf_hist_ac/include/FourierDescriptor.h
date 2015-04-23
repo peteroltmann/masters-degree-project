@@ -57,7 +57,6 @@ public:
 
 private:
     cv::Size mask_size; //!< the size of the contour mask for reconstruction
-    cv::Point center; //!< center of contour
     int num_points; //!< number of contour points
     std::vector<cv::Point> cp; //!< contour points sorted clockwise
     cv::Mat_<cv::Vec2f> U;  //!< complex vector with coordinates (x_k + i * y_k)

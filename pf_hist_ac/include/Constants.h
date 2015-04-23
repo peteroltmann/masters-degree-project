@@ -12,8 +12,6 @@ const cv::Scalar RED(0, 0, 255);
 
 // window names
 const std::string WINDOW_NAME("ObjectTracker");
-const std::string WINDOW_DETAILED_NAME("Detailed Result");
 const std::string WINDOW_TEMPALTE_NAME("Template");
-const std::string WINDOW_CV_NAME("Characteristic Views");
 
 #endif // CONSTANTS_H

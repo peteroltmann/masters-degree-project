@@ -24,6 +24,8 @@ public:
      *
      * Call to initialize members with default values. You can also initialize
      * members bindividually.
+     *
+     * \param templ_rect    bounding rectangle of the template contour.
      */
     void init(const cv::Rect templ_rect);
 
@@ -34,12 +36,20 @@ public:
 
     /*!
      * \brief Calculate the particle weights and the mean confidence.
+     * \param frame         the current frame
+     * \param templ_size    the size of the template rectangle
+     * \param templ_hist    the template histogram
+     * \param sigma         the factor to control the variance
      */
     void calc_weight(cv::Mat &frame, cv::Size templ_size,
                      Histogram &templ_hist, float sigma);
 
     /*!
      * \brief Calculate the estimated state confidence.
+     * \param frame         the current frame
+     * \param templ_size    the size of the template rectangle
+     * \param templ_hist    the template histogram
+     * \param sigma         the factor to control the variance
      */
     void calc_state_confidence(cv::Mat &frame, cv::Size templ_size,
                                Histogram &templ_hist, float sigma);
@@ -65,8 +75,8 @@ public:
     void resample_systematic();
 
     /*!
-     * \brief TODO
-     * \param frame_size
+     * \brief Redistribute particles.
+     * \param frame_size  the size of the current frames
      */
     void redistribute(cv::Size frame_size);
 

@@ -136,24 +136,24 @@ private:
      */
     bool push_back(int listNo, bool tmp, cv::Point p, cv::Size size);
 
-    Method method;
-    bool localized;
-    float rad;
-    float alpha;
+    Method method; //!< The energy used for contour evolution
+    bool localized; //!< Use the localized version of the energy or not
+    float rad; //<! Radius (only used in localized version)
+    float alpha; //!< Factor to control the influence of the curvature
 
-    float sum_int;
-    float sum_ext;
-    float cnt_int;
-    float cnt_ext;
-    float mean_int;
-    float mean_ext;
+    float sum_int; //!< Sum of values inside the contour
+    float sum_ext; //!< Sum of values outside the contour
+    float cnt_int; //!< Number of points inside the contour
+    float cnt_ext; //!< Number of points outside the contour
+    float mean_int; //!< Mean value inside the contour
+    float mean_ext; //!< Mean value outside the contour
 
     cv::Mat image; //!< Current original frame
     cv::Mat frame; //!< Current frame in CV_32F
     cv::Mat label; //!< The label map
     cv::Mat F; //! The force effecting the contour
-    std::list<cv::Point> lz, ln1, lp1, ln2, lp2; //!< Level set lists.
-    std::list<cv::Point> sz, sn1, sp1, sn2, sp2; //!< Temporary lists.
+    std::list<cv::Point> lz, ln1, lp1, ln2, lp2; //!< Level set lists
+    std::list<cv::Point> sz, sn1, sp1, sn2, sp2; //!< Temporary lists
     std::list<cv::Point>::iterator lz_it, ln1_it, lp1_it, ln2_it, lp2_it;
     std::list<cv::Point>::iterator sz_it, sn1_it, sp1_it, sn2_it, sp2_it;
 
