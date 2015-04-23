@@ -49,15 +49,10 @@ devel/
 doc/
 input/
 output/
+matlab/
 
 # Qt Creator files #
 ####################
 
 CMakeLists.txt.user
 *-pre1
-
-# Specific files #
-##################
-
-templ*
-matlab_out.m
