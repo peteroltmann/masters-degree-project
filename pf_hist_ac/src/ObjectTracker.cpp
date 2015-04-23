@@ -38,6 +38,7 @@ int ObjectTracker::run(std::string param_path)
     bool select_start_rect;
     cv::Rect start_rect;
     std::string input_path;
+    int input_device;
     std::vector<std::string> char_views;
     std::string output_file_name;
     std::string output_path;
@@ -69,6 +70,7 @@ int ObjectTracker::run(std::string param_path)
     fs["select_start_rect"] >> select_start_rect;
     fs["start_rect"] >> start_rect;
     fs["input_path"] >> input_path;
+    fs["input_device"] >> input_device;
     fs["char_views"] >> char_views;
     fs["output_file_name"] >> output_file_name;
     fs["output_path"] >> output_path;
@@ -141,6 +143,13 @@ int ObjectTracker::run(std::string param_path)
     if (output_file_name.empty())
         output_file_name = "out";
 
+    if (input_device < 0)
+    {
+        std::cout << "invalid value for 'input_device', '0' used instead"
+                  << std::endl;
+        input_device = 0;
+    }
+
     // input_path: on open VideoCapture
     // char_views: on first frame evolution: if empty, only use first frame
     // output_path: on open VideoWriter
@@ -200,7 +209,18 @@ int ObjectTracker::run(std::string param_path)
     ParticleFilter pf(num_particles);
 
     // open input image sequence or video
-    cv::VideoCapture capture(input_path);
+    cv::VideoCapture capture;
+    if (input_path == "")
+    {
+        capture.open(input_device);
+
+        // drop first ten frames
+        for (int i = 0; i < 10; i++)
+            capture >> frame;
+    }
+    else
+        capture.open(input_path);
+
     if (!capture.isOpened())
     {
         std::cerr << "Failed to open capture: '" << input_path << "'"

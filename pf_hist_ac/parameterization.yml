@@ -43,7 +43,8 @@ input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
 # input_path: "../input/hand_count.mp4"
 # input_path: "../input/passat_1.mp4"
 
-# input_path: "../../vrm_record/output/vid_000.mp4"
+# number of input device, only used if input_path is empty, default: 0
+input_device: 0
 
 # charateristic views, list of strings to filepaths
 char_views: ["../input/char_views/cv_fish/cv_fish_back_right_down.png",
