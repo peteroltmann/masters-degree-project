@@ -23,6 +23,7 @@ bc_threshold_adapt: 0.1
 a: 0.1
 
 # number of fourier frequencies for filtering, default: 10
+# the value used ist 2 * num_fourier to always obtain an even-numbered value
 num_fourier:  7
 
 # fourier descriptor matching threshold, default: 0.15, 1: none
@@ -47,8 +48,8 @@ input_path: "../input/palau2_gray_cropped/palau2_frames_%04d.png"
 input_device: 0
 
 # charateristic views, list of strings to filepaths
-char_views: ["../input/char_views/cv_fish/cv_fish_back_right_down.png",
-             "../input/char_views/cv_fish/cv_fish_back_right_up.png"]
+char_views: ["../input/char_views/cv_fish/cv_fish_back_right_down_s.png",
+             "../input/char_views/cv_fish/cv_fish_back_right_up_s.png"]
 # char_views: ["../input/char_views/cv_plane/cv_plane_right.png"]
 # char_views: ["../input/char_views/cv_hand_count/cv_hand_count_1_c.png",
 #             "../input/char_views/cv_hand_count/cv_hand_count_2_c.png",
@@ -70,7 +71,7 @@ fps: 25.0
 # detailed view is added to 'details/' that needs to be created in advance
 # save_img_path: "../output/fish/fish_img/"
 
-# matching values that can be read in with mathlab, leave empty for no output
+# matching values that can be read in with matlab, leave empty for no output
 # matlab_file_path: "../matlab/matlab_out.m"
 
 
