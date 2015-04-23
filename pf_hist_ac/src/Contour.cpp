@@ -14,7 +14,7 @@ Contour::Contour(const cv::Mat_<uchar>& mask)
     set_mask(mask);
 }
 
-void Contour::transform_affine(cv::Mat_<float>& state)
+void Contour::translate(cv::Mat_<float>& state)
 {
     // calculate mass center
     cv::Moments m = cv::moments(mask, true);

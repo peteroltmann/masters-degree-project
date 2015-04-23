@@ -529,7 +529,7 @@ int ObjectTracker::run(std::string param_path)
                 s(PARAM_Y) = center.y;
 
                 evolved_repl.set_mask(tmp);
-                evolved_repl.transform_affine(s);
+                evolved_repl.translate(s);
             }
             else
                 last_match_idx = match_idx; // for replacement contour

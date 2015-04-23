@@ -23,11 +23,11 @@ public:
     Contour(const cv::Mat_<uchar>& mask);
 
     /*!
-     * \brief Transform the contour mask with the specified affine parameters.
+     * \brief Translate the contour mask with the specified parameters.
      * \param state the estimated state of the particle filter including the
-     *              affine parameters
+     *              translation parameters
      */
-    void transform_affine(cv::Mat_<float>& state);
+    void translate(cv::Mat_<float>& state);
 
     /*!
      * \brief Evolve the contour.
