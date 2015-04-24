@@ -45,14 +45,8 @@ public:
      * image using the sparse-field method.
      *
      * \param frame         the image to apply the algorithm to
-     * \param initMask      the initialization mask for the level-set function
-     * \param phi           the level-set function (empty cv::Mat)
+     * \param init_mask     the initialization mask for the level-set function
      * \param iterations    the number of iterations
-     * \param method        the contour's speed function method
-     * \param localized     weather the localized version of the specified
-     *                      method is supposed to be used
-     * \param rad           the radius of localized regions
-     * \param alpha         the curvature weight (higher -> smoother)
      */
     void applySFM(cv::Mat& frame, cv::Mat init_mask, int iterations);
 
@@ -61,14 +55,8 @@ public:
      * image using the narrow-band method..
      *
      * \param frame         the image to apply the algorithm to
-     * \param initMask      the initialization mask for the level-set function
-     * \param phi           the level-set function (empty cv::Mat)
+     * \param init_mask     the initialization mask for the level-set function
      * \param iterations    the number of iterations
-     * \param method        the contour's speed function method
-     * \param localized     weather the localized version of the specified
-     *                      method is supposed to be used
-     * \param rad           the radius of localized regions
-     * \param alpha         the curvature weight (higher -> smoother)
      */
     void apply(cv::Mat frame, cv::Mat init_mask, int iterations);
 

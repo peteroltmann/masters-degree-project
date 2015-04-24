@@ -8,13 +8,16 @@
 
 class RegBasedContours;
 
+/*!
+ * \brief Particle Filter for tracking image regions using histogram comparison.
+ */
 class ParticleFilter
 {
 public:
     /*!
      * \brief Construct a new ContourParticleFilter with the specified number of
      * particles.
-     * \param num_p the number of particles
+     * \param num_particles the number of particles
      */
     ParticleFilter(int num_particles);
     virtual ~ParticleFilter(); //!< The default destructor.

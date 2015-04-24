@@ -4,6 +4,9 @@
 #include <opencv2/core/core.hpp>
 #include <complex>
 
+/*!
+ * \brief Fourier descriptor 'complex coordinates'.
+ */
 class FourierDescriptor
 {
 public:
