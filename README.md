@@ -1,7 +1,7 @@
 # Tracking Objects with Particle Filters and Active Contours
 
 This software was developed during my master's degree.
-It is capable of tracking the contours of deforming object in changing environments even if partial occlusions ocurr.
+It is capable of tracking the contours of deforming objects in changing environments even if partial occlusions ocurr.
 
 ## Requirements
 
